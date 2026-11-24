@@ -38,6 +38,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+      - name: Normalize source line endings
+        shell: pwsh
+        run: |
+          python -c "from pathlib import Path; [p.write_bytes(p.read_bytes().replace(b'\r\n', b'\n')) for p in Path('.').rglob('*') if p.is_file() and p.suffix.lower() in {'.py', '.js', '.css', '.html', '.json', '.txt', '.md', '.svg', '.desktop'}]"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
