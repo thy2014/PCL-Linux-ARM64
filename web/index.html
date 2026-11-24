@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PCL · Linux ARM64</title>
+  <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M3.5 10.8 12 3.5l8.5 7.3"/>
+      <path d="M5.5 9.5V20a.8.8 0 0 0 .8.8h11.4a.8.8 0 0 0 .8-.8V9.5"/>
+      <path d="M9.5 20.8v-6.2h5v6.2"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 3.5v11.8"/>
+      <path d="m7.4 10.6 4.6 4.7 4.6-4.7"/>
+      <path d="M4.5 20.5h15"/>
+    </symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24">
+      <path d="m12 3.2 8.6 4.7-8.6 4.7L3.4 7.9l8.6-4.7Z"/>
+      <path d="m3.9 12.2 8.1 4.5 8.1-4.5"/>
+      <path d="m3.9 16.4 8.1 4.5 8.1-4.5"/>
+    </symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24">
+      <path d="M4 7h9"/><path d="M17 7h3"/>
+      <circle cx="15" cy="7" r="2.2"/>
+      <path d="M4 12h3"/><path d="M11 12h9"/>
+      <circle cx="9" cy="12" r="2.2"/>
+      <path d="M4 17h9"/><path d="M17 17h3"/>
+      <circle cx="15" cy="17" r="2.2"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 10.6v6.2"/><path d="M12 7.2v.2"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24">
+      <path d="M8.2 5.6v12.8a.7.7 0 0 0 1.1.6l10-6.4a.7.7 0 0 0 0-1.2l-10-6.4a.7.7 0 0 0-1.1.6Z"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24">
+      <path d="M4.5 6.5h15"/><path d="M9 6.5V4.3h6v2.2"/>
+      <path d="m6.2 6.5.9 13.2a1 1 0 0 0 1 .9h7.8a1 1 0 0 0 1-.9l.9-13.2"/>
+      <path d="M10 10.5v6"/><path d="M14 10.5v6"/>
+    </symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24">
+      <path d="M3.5 7.2a1.7 1.7 0 0 1 1.7-1.7h4l2 2h7.8a1.7 1.7 0 0 1 1.7 1.7v9.1a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7V7.2Z"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24">
+      <path d="M20 11.2a8 8 0 1 0-2.4 5.5"/>
+      <path d="M20.2 5.2v6h-6"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.3"/>
+      <path d="m15.6 15.6 4.4 4.4"/>
+    </symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24">
+      <rect x="3" y="4.2" width="18" height="15.6" rx="2.2"/>
+      <path d="m6.6 9 3 3-3 3"/><path d="M12.5 15h4.5"/>
+    </symbol>
+    <symbol id="i-coffee" viewBox="0 0 24 24">
+      <path d="M5 9h11v6.2a4.2 4.2 0 0 1-4.2 4.2h-2.6A4.2 4.2 0 0 1 5 15.2V9Z"/>
+      <path d="M16 10.4h1.5a2.8 2.8 0 0 1 0 5.6H16"/>
+      <path d="M8 5.5c0-1 1-1.2 1-2.3"/><path d="M12 5.5c0-1 1-1.2 1-2.3"/>
+    </symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24">
+      <rect x="6.2" y="6.2" width="11.6" height="11.6" rx="2"/>
+      <path d="M9.5 3.2v3"/><path d="M14.5 3.2v3"/><path d="M9.5 17.8v3"/><path d="M14.5 17.8v3"/>
+      <path d="M3.2 9.5h3"/><path d="M3.2 14.5h3"/><path d="M17.8 9.5h3"/><path d="M17.8 14.5h3"/>
+    </symbol>
+    <symbol id="i-memory" viewBox="0 0 24 24">
+      <rect x="3.2" y="7" width="17.6" height="10" rx="1.6"/>
+      <path d="M6 3.5v3.5"/><path d="M9 3.5v3.5"/><path d="M12 3.5v3.5"/><path d="M15 3.5v3.5"/><path d="M18 3.5v3.5"/>
+      <path d="M6 17v3.5"/><path d="M9 17v3.5"/><path d="M12 17v3.5"/><path d="M15 17v3.5"/><path d="M18 17v3.5"/>
+    </symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M3.2 12h17.6"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m4.8 12.4 4.8 4.8 9.6-10.4"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24">
+      <path d="m5.5 5.5 13 13"/><path d="m18.5 5.5-13 13"/>
+    </symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24">
+      <path d="m7 9.5 5 5 5-5"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path d="M12 4.5v15"/><path d="M4.5 12h15"/>
+    </symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24">
+      <path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5 10.1 12.8 4.5 10.9 10.1 9 12 3.5Z"/>
+      <path d="M18.5 16.5v4"/><path d="M16.5 18.5h4"/>
+    </symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24">
+      <rect x="6" y="6" width="12" height="12" rx="2"/>
+    </symbol>
+    <symbol id="i-external" viewBox="0 0 24 24">
+      <path d="M13.5 4.5H19a.5.5 0 0 1 .5.5v5.5"/>
+      <path d="m18.8 4.7-7.6 7.6"/>
+      <path d="M18.5 13.5v5.2a1.3 1.3 0 0 1-1.3 1.3H5.3A1.3 1.3 0 0 1 4 18.7V6.8A1.3 1.3 0 0 1 5.3 5.5h5.2"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="m12 3 7 2.6v5.8c0 4.3-2.8 7.4-7 9.6-4.2-2.2-7-5.3-7-9.6V5.6L12 3Z"/>
+      <path d="m8.8 11.6 2.3 2.3 4.3-4.6"/>
+    </symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24">
+      <rect x="3.2" y="5" width="17.6" height="14" rx="2"/>
+      <path d="M3.2 13h17.6"/>
+      <path d="M7 16h3"/>
+      <circle cx="17.5" cy="16" r=".6"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24">
+      <circle cx="12" cy="8.2" r="3.8"/>
+      <path d="M4.8 20.2a7.2 7.2 0 0 1 14.4 0"/>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24">
+      <path d="M4.5 12h14"/><path d="m13.5 7 5 5-5 5"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.8"/><path d="M12 7.2V12l3.4 2"/>
+    </symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24">
+      <path d="m12 3 8 4.6v8.8L12 21l-8-4.6v-8.8L12 3Z"/>
+      <path d="m4 7.6 8 4.6 8-4.6"/><path d="M12 12.2V21"/>
+    </symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24">
+      <path d="m12 3.6 8.6 15.2H3.4L12 3.6Z"/>
+      <path d="M12 9v4.4"/><path d="M12 16.4v.2"/>
+    </symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24">
+      <rect x="8" y="8" width="12" height="12" rx="2"/>
+      <path d="M16 8V5.8A1.8 1.8 0 0 0 14.2 4H5.8A1.8 1.8 0 0 0 4 5.8v8.4A1.8 1.8 0 0 0 5.8 16H8"/>
+    </symbol>
+    <symbol id="i-package" viewBox="0 0 24 24">
+      <path d="m12 3 8 4.4v8.9L12 21l-8-4.7v-8.9L12 3Z"/>
+      <path d="m4.2 7.5 7.8 4.4 7.8-4.4"/><path d="M12 11.9V21"/>
+      <path d="M8 5.1v7.2"/>
+    </symbol>
+    <symbol id="i-server" viewBox="0 0 24 24">
+      <rect x="3.5" y="4" width="17" height="6.2" rx="1.6"/>
+      <rect x="3.5" y="13.8" width="17" height="6.2" rx="1.6"/>
+      <path d="M7 7.1h.1"/><path d="M7 16.9h.1"/><path d="M11 7.1h6"/><path d="M11 16.9h6"/>
+    </symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24">
+      <path d="M14.7 6.3a4.5 4.5 0 0 0-6 5.9L4 16.9a2.1 2.1 0 0 0 3 3l4.8-4.8a4.5 4.5 0 0 0 5.9-6l-2.7 2.7-2.9-2.9 2.6-2.6Z"/>
+      <path d="m15.5 15.5 4.5 4.5"/>
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 24 24">
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2"/>
+      <circle cx="8.2" cy="9.2" r="1.6"/>
+      <path d="m4.5 17 4.8-4.8 3.2 3.2 2.4-2.4 4.6 4.6"/>
+    </symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24">
+      <path d="M12 20.5S4 15.4 4 9.6a4.1 4.1 0 0 1 7.4-2.4L12 8l.6-.8A4.1 4.1 0 0 1 20 9.6c0 5.8-8 10.9-8 10.9Z"/>
+    </symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24">
+      <path d="M3.5 12h4l2.2-6 4.2 12 2.2-6h4.4"/>
+    </symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24">
+      <rect x="4" y="4.5" width="16" height="15.5" rx="2"/>
+      <path d="M4 9.5h16"/><path d="M9 4.5v5"/><path d="M15 4.5v5"/><path d="M9.5 14h5"/>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 24 24">
+      <path d="M6 3.8h8l4 4v12.4a1.8 1.8 0 0 1-1.8 1.8H6a1.8 1.8 0 0 1-1.8-1.8V5.6A1.8 1.8 0 0 1 6 3.8Z"/>
+      <path d="M14 3.8V8h4"/><path d="M8.2 12h6.4"/><path d="M8.2 15.2h4.6"/>
+    </symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24">
+      <rect x="7" y="7" width="10" height="10" rx="2"/>
+      <path d="M9.5 3.5v3.5M14.5 3.5v3.5M9.5 17v3.5M14.5 17v3.5M3.5 9.5H7M3.5 14.5H7M17 9.5h3.5M17 14.5h3.5"/>
+    </symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24">
+      <path d="M9 3.5v5"/><path d="M15 3.5v5"/>
+      <path d="M6 8.5h12v3a6 6 0 0 1-6 6v3"/>
+      <path d="M6 8.5v2a6 6 0 0 0 3 5.2"/>
+    </symbol>
+  </svg>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#2f5bea"/>
+                <stop offset="1" stop-color="#6f9bff"/>
+              </linearGradient>
+            </defs>
+            <rect x="1" y="1" width="46" height="46" rx="14" fill="url(#brandGrad)"/>
+            <rect x="1" y="1" width="46" height="46" rx="14" fill="none" stroke="rgba(255,255,255,.18)"/>
+            <path d="M13 11h9v26h-6V17H13z" fill="#fff"/>
+            <path d="M22 11h9.5a7 7 0 0 1 0 14H22z" fill="#fff"/>
+            <rect x="25" y="14" width="6" height="8" rx="1" fill="#2f5bea"/>
+            <rect x="13" y="31" width="6" height="6" fill="#ffb23f"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">PCL</span>
+          <span class="brand-sub">Linux ARM64</span>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav" aria-label="主导航">
+        <button class="nav-item" data-route="home"><span class="nav-icon" data-icon="home"></span><span class="nav-label">主页</span></button>
+        <button class="nav-item" data-route="download"><span class="nav-icon" data-icon="download"></span><span class="nav-label">下载</span></button>
+        <button class="nav-item" data-route="versions"><span class="nav-icon" data-icon="layers"></span><span class="nav-label">版本管理</span></button>
+        <button class="nav-item" data-route="resources"><span class="nav-icon" data-icon="package"></span><span class="nav-label">资源</span><span class="nav-dot"></span></button>
+        <button class="nav-item" data-route="servers"><span class="nav-icon" data-icon="server"></span><span class="nav-label">服务器</span></button>
+        <button class="nav-item" data-route="toolbox"><span class="nav-icon" data-icon="wrench"></span><span class="nav-label">工具箱</span></button>
+        <button class="nav-item" data-route="settings"><span class="nav-icon" data-icon="sliders"></span><span class="nav-label">设置</span></button>
+        <button class="nav-item" data-route="about"><span class="nav-icon" data-icon="info"></span><span class="nav-label">关于</span></button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+
+      <div class="account" id="account" title="切换账户">
+        <div class="avatar" id="avatar" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <rect width="32" height="32" rx="9" fill="#24324a"/>
+            <rect x="6" y="5" width="20" height="7" fill="#86c76a"/>
+            <rect x="6" y="5" width="20" height="15" fill="#5a9be0"/>
+            <rect x="9" y="12" width="5" height="4" fill="#f6f8ff"/>
+            <rect x="18" y="12" width="5" height="4" fill="#f6f8ff"/>
+            <rect x="10" y="13" width="3" height="2" fill="#1d2a3d"/>
+            <rect x="19" y="13" width="3" height="2" fill="#1d2a3d"/>
+            <rect x="11" y="22" width="10" height="3" rx="1.5" fill="#f0c49b"/>
+            <rect x="12" y="22" width="8" height="2" fill="#7a4a33"/>
+          </svg>
+        </div>
+        <div class="account-text">
+          <strong id="accountName">Steve</strong>
+          <span id="accountType">离线账户 · 点击切换</span>
+        </div>
+      </div>
+      <div class="side-chip" id="sideArch"><span class="dot"></span>ARM64 · Linux</div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1 id="pageTitle">主页</h1>
+          <span class="page-sub" id="pageSub">欢迎回来</span>
+        </div>
+        <div class="topbar-meta" id="topbarMeta"></div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="logBtn" title="启动日志" aria-label="启动日志"><span data-icon="terminal"></span></button>
+          <button class="icon-btn" id="refreshBtn" title="刷新状态" aria-label="刷新状态"><span data-icon="refresh"></span></button>
+        </div>
+      </header>
+      <main id="main" tabindex="-1"></main>
+    </section>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div id="modalRoot"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
