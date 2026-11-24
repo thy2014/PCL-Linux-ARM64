@@ -52,7 +52,7 @@ jobs:
         shell: pwsh
         run: python -m playwright install chromium
       - name: Capture Windows UI
-        shell: pwwsh
+        shell: pwsh
         run: |
           $data = Join-Path $env:TEMP "pcl-ci-data"
           $game = Join-Path $env:TEMP "pcl-ci-game"
