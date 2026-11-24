@@ -142,7 +142,13 @@ cd PCL-Linux-ARM64
 ./start.sh
 ```
 
-或直接：
+如果只下载了 `start.sh`（没有 `pcl.py` 和 `web/`），脚本会自动从 GitHub 拉取完整项目到 `~/.local/share/PCL-Linux-ARM64` 再启动：
+
+```bash
+bash start.sh
+```
+
+也可以直接运行 Python：
 
 ```bash
 python3 pcl.py
@@ -154,8 +160,21 @@ python3 pcl.py
 
 ```bash
 ./install.sh              # 创建 ~/.local/bin/pcl-arm64 软链接
+./install.sh --run        # 安装后立即启动
 ./install.sh --desktop    # 同时创建应用菜单快捷方式
 ```
+
+只下载了 `install.sh` 也可以执行；它会自动拉取完整项目到 `~/.local/share/PCL-Linux-ARM64`，再把命令链接到 `~/.local/bin/pcl-arm64`。
+
+### 启动失败排查
+
+| 现象 | 原因 / 处理 |
+| --- | --- |
+| `python3: can't open file 'pcl.py'` | 只下载了两个脚本，目录里没有完整项目。重新下载新版 `start.sh`（会自动拉取），或克隆整个仓库 |
+| `Permission denied` | 给脚本执行权限：`chmod +x start.sh install.sh`，或用 `bash start.sh` |
+| `pcl-arm64: command not found` | `~/.local/bin` 不在 PATH；直接运行 `~/.local/bin/pcl-arm64`，或把该目录加入 `~/.profile` |
+| 终端没有弹出浏览器 | 看终端打印的 `界面地址`，手动在浏览器打开；服务器默认只监听 `127.0.0.1` |
+| 提示“当前不是 ARM64” | 当前机器是 x86_64；界面与下载可用，但 ARM64 原生库补丁不会生效 |
 
 ### 命令行参数
 
