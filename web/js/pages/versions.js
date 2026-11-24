@@ -19,7 +19,7 @@ export function versionsPage(ctx) {
           <div class="sub">${typeBadge(item.type)}${item.loader && item.loader !== "vanilla" ? `<span class="badge release">${esc(item.loader)}</span>` : ""}${item.isolated ? `<span class="badge muted">隔离</span>` : ""}${patched ? `<span class="badge ok">ARM64 ×${patched}</span>` : "<span class=\"badge muted\">官方原生库</span>"}</div>
         </div>
       </div>
-      ${unsupported ? `<div class="warn-line">${icon("warning")}该版本依赖 LWJGL 2 / 旧版原生库，官方没有 Linux ARM64 构建，启动可能失败。</div>` : ""}
+      ${unsupported ? `<div class="warn-line">${icon("warning")}该版本依赖 LWJGL 2 / 旧版原生库，当前平台可能没有对应的官方构建，启动可能失败。</div>` : ""}
       <div class="installed-meta">
         <div class="kv"><span>需要 Java</span><strong>Java ${Number(item.java_major) || 8}+</strong></div>
         <div class="kv"><span>版本文件</span><strong>${fmtBytes(item.size)}</strong></div>

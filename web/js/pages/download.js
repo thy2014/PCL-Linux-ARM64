@@ -11,7 +11,7 @@ export function downloadPage(ctx) {
   const installedSet = new Set((state.installed || []).map((item) => item.id));
   const java = state.java || [];
   const bestJava = java[0] || null;
-  const arch = state.app?.arch_label || "ARM64";
+  const arch = state.app?.arch_label || "—";
   const sourceLabel = ui.source === "bmclapi" ? "BMCLAPI 镜像" : "官方源";
   const missingMajor = [21, 17, 8].find((major) => !java.some((item) => item.major === major)) || 21;
 

@@ -5,7 +5,6 @@ export function settingsPage(ctx) {
   const { state, actions } = ctx;
   const settings = state.settings || {};
   const java = state.java || [];
-  const arch = state.app?.arch || "arm64";
   const memory = clamp(Number(settings.memory_mb) || 4096, 1024, 32768);
   const memoryGb = (memory / 1024).toFixed(memory % 1024 ? 1 : 0);
   const pct = ((memory - 1024) / (32768 - 1024)) * 100;
@@ -49,7 +48,7 @@ export function settingsPage(ctx) {
               <button class="btn btn-soft btn-sm" data-java-major="21">${icon("download")}下载 Java 21</button>
               <button class="btn btn-light btn-sm" data-java-major="17">${icon("coffee")}Java 17</button>
             </div>
-            <span class="hint">${java.length ? `已检测到 ${java.length} 个 Java。自动模式按版本要求挑选，优先同版本。` : "尚未检测到 Java，可下载 Adoptium ARM64 JDK。"}</span>
+            <span class="hint">${java.length ? `已检测到 ${java.length} 个 Java。自动模式按版本要求挑选，优先同版本。` : "尚未检测到 Java，可下载与当前平台匹配的 Adoptium JDK。"}</span>
           </div>
         </div>
       </div>
@@ -129,14 +128,6 @@ export function settingsPage(ctx) {
             </select>
             <span class="hint">资源文件数量多时，16-24 线程通常更快；网络不稳定时请降低。</span>
           </div>
-          <div class="switch-row">
-            <div class="switch-text">
-              <strong>ARM64 原生库替换</strong>
-              <span>把 LWJGL 的 natives-linux 替换为 Maven Central 的 natives-linux-arm64（仅 3.3+ 生效）。</span>
-            </div>
-            <label class="switch"><input type="checkbox" id="setPatch" ${settings.arm64_patch ? "checked" : ""}><span class="track"></span></label>
-          </div>
-          ${arch === "arm64" ? "" : `<div class="warn-line">${icon("warning")}当前运行在 ${esc(state.app?.arch_label || arch)}，ARM64 补丁只会在 ARM64 设备上生效。</div>`}
         </div>
       </div>
 
@@ -164,7 +155,7 @@ export function settingsPage(ctx) {
       <button class="btn btn-primary" id="saveSettings">${icon("check")}保存设置</button>
       <button class="btn btn-light" id="reloadSettings">${icon("refresh")}撤销修改</button>
       <span class="spacer"></span>
-      <span class="save-hint" id="saveHint">修改会写入 ~/.pcl-arm64/config.json</span>
+      <span class="save-hint" id="saveHint">修改会写入 ${esc(state.dirs?.data || "应用数据目录")}/config.json</span>
     </div>`;
 
   const range = root.querySelector("#setMemory");
@@ -210,7 +201,6 @@ export function settingsPage(ctx) {
       memory_mb: Number(range.value),
       download_source: root.querySelector('input[name="downloadSource"]:checked')?.value || "official",
       download_threads: Number(root.querySelector("#setThreads").value),
-      arm64_patch: root.querySelector("#setPatch").checked,
       version_isolation: root.querySelector("#setIsolation").checked,
       theme: root.querySelector('input[name="theme"]:checked')?.value || "blue",
       jvm_args: root.querySelector("#setJvm").value,

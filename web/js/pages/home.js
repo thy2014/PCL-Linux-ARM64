@@ -55,7 +55,7 @@ export function homePage(ctx) {
          <button class="btn btn-light btn-sm" data-refresh-java>${icon("refresh")}重新检测</button>
          <button class="btn btn-soft btn-sm" data-java-major="21">${icon("download")}下载 Java 21</button>
        </div>`
-    : `<div class="warn-line">${icon("warning")}尚未检测到 Java。安装版本时可自动下载 ARM64 JDK，也可以现在手动下载。</div>
+    : `<div class="warn-line">${icon("warning")}尚未检测到 Java。安装版本时可自动下载匹配平台的 JDK，也可以现在手动下载。</div>
        <div class="mini-actions">
          <button class="btn btn-primary btn-sm" data-java-major="21">${icon("download")}下载 Java 21（${esc(state.app.arch_label)}）</button>
          <button class="btn btn-light btn-sm" data-refresh-java>${icon("refresh")}重新检测</button>
@@ -64,9 +64,9 @@ export function homePage(ctx) {
   root.innerHTML = `
     <section class="hero">
       <div class="hero-copy">
-        <div class="hero-eyebrow"><span class="pulse"></span>ARM64 NATIVE LAUNCHER</div>
-        <h2>为 ARM64 而生的<br><em>我的世界</em>启动器</h2>
-        <p>PCL 风格的 Linux ARM64 Minecraft 启动器。版本、依赖库、资源文件与 Java 运行时一站式下载，LWJGL 原生库自动替换为 arm64 版本。</p>
+        <div class="hero-eyebrow"><span class="pulse"></span>NATIVE LAUNCHER</div>
+        <h2>为你的系统而生的<br><em>我的世界</em>启动器</h2>
+        <p>PCL 风格的跨平台 Minecraft 启动器。版本、依赖库、资源文件与 Java 运行时一站式下载，原生库会按当前系统自动匹配。</p>
         <div class="hero-actions">
           ${last
             ? `<button class="btn btn-primary btn-lg" data-launch="${esc(last.id)}">${icon("play")}启动 ${esc(last.id)}</button>`
@@ -88,7 +88,7 @@ export function homePage(ctx) {
         </div>
         <div class="hero-float two">
           <div class="hf-icon blue">${icon("chip")}</div>
-          <div class="hf-text"><strong>ARM64 原生</strong><span>LWJGL 自动替换</span></div>
+          <div class="hf-text"><strong>原生库适配</strong><span>按系统自动匹配</span></div>
         </div>
       </div>
     </section>
@@ -125,7 +125,7 @@ export function homePage(ctx) {
             <h3>还没有安装任何版本</h3>
             <p>去下载页选一个正式版，客户端、依赖库与资源会自动下载并校验 SHA1。</p>
             <div class="quick-start">
-              <div class="step"><span class="num">1</span><strong>安装 Java</strong><p>按版本要求自动下载 ARM64 JDK</p></div>
+              <div class="step"><span class="num">1</span><strong>安装 Java</strong><p>按版本要求自动下载匹配 JDK</p></div>
               <div class="step"><span class="num">2</span><strong>下载版本</strong><p>选择正式版或快照并等待进度完成</p></div>
               <div class="step"><span class="num">3</span><strong>启动游戏</strong><p>离线账户即可进入单人游戏</p></div>
             </div>

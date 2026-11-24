@@ -326,7 +326,7 @@ def _run_modpack(state: AppState, task: Task, source_version: str, slug: str, pr
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "PCLinux/1.0"
+    server_version = "PCL/1.0"
     protocol_version = "HTTP/1.1"
 
     @property
@@ -888,9 +888,16 @@ class Handler(BaseHTTPRequestHandler):
                 raise SettingsError("未知目录")
             if not folder.exists():
                 raise SettingsError("目录不存在")
+            if os.name == "nt":
+                try:
+                    os.startfile(str(folder))  # type: ignore[attr-defined]
+                except OSError as error:
+                    raise SettingsError(f"无法打开目录：{error}") from error
+                self._ok({"path": str(folder)})
+                return
             opener = shutil.which("xdg-open") or shutil.which("open")
             if not opener:
-                raise SettingsError("当前系统没有 xdg-open，请手动打开：" + str(folder))
+                raise SettingsError("当前系统没有可用的文件管理器启动命令，请手动打开：" + str(folder))
             subprocess.Popen([opener, str(folder)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self._ok({"path": str(folder)})
             return

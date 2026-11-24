@@ -12,7 +12,7 @@ from typing import Callable
 
 from .util import sha1_file, sha256_file
 
-USER_AGENT = "PCL-Linux-ARM64/1.0 (+https://github.com/thy2014/PCL-Linux-ARM64)"
+USER_AGENT = "PCL-Launcher/1.0 (+https://github.com/thy2014/PCL-Linux-ARM64)"
 JSON_HEADERS = {"Accept": "application/json, text/plain, */*"}
 
 

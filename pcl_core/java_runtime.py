@@ -1,4 +1,4 @@
-"""Java 运行时检测与 Adoptium ARM64 JDK 自动下载。"""
+"""Java 运行时检测与 Adoptium JDK 自动下载（Windows / Linux / macOS）。"""
 from __future__ import annotations
 
 import os
@@ -10,10 +10,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from .config import Config, Paths, arch_label, detect_arch
+from .config import Config, Paths, arch_label, detect_arch, detect_os, java_binary_name
 from .http_client import FetchError, download_file, get_json
 from .tasks import Task
-from .util import safe_extract_tar
+from .util import safe_extract_tar, safe_extract_zip
 
 ADOPTIUM_API = "https://api.adoptium.net/v3/assets/latest/{major}/hotspot"
 
@@ -43,30 +43,50 @@ def _vendor_of(text: str) -> str:
     return "Java"
 
 
+def _java_binary(home: Path) -> Path:
+    return home / "bin" / java_binary_name()
+
+
 def _candidate_paths(config: Config, paths: Paths) -> list[Path]:
     candidates: list[Path] = []
     configured = str(config.get("java_path") or "").strip()
     if configured:
-        candidates.append(Path(os.path.expanduser(configured)))
+        configured_path = Path(os.path.expanduser(configured))
+        if configured_path.is_dir():
+            candidates.append(_java_binary(configured_path))
+            candidates.append(configured_path / "jre" / "bin" / java_binary_name())
+        else:
+            candidates.append(configured_path)
     java_home = os.environ.get("JAVA_HOME")
     if java_home:
-        candidates.append(Path(java_home) / "bin" / "java")
+        home = Path(java_home)
+        candidates.append(_java_binary(home))
+        candidates.append(home / "jre" / "bin" / java_binary_name())
     which = shutil.which("java")
     if which:
         candidates.append(Path(which))
     if paths.java_dir.exists():
-        for directory in sorted(paths.java_dir.glob("**/bin/java")):
-            candidates.append(directory)
-    for root in ("/usr/lib/jvm", "/opt/java", "/usr/java"):
-        root_path = Path(root)
-        if root_path.exists():
-            for java_home_dir in sorted(root_path.glob("*")):
-                candidate = java_home_dir / "bin" / "java"
-                if candidate.exists():
-                    candidates.append(candidate)
-                candidate = java_home_dir / "jre" / "bin" / "java"
-                if candidate.exists():
-                    candidates.append(candidate)
+        for name in ("java", "java.exe"):
+            candidates.extend(sorted(paths.java_dir.glob(f"**/bin/{name}")))
+    if os.name == "nt":
+        roots: list[Path] = []
+        for env_name in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"):
+            root = os.environ.get(env_name)
+            if root:
+                roots.append(Path(root))
+                roots.append(Path(root) / "Programs")
+        for root in roots:
+            if not root.exists():
+                continue
+            for pattern in ("*/bin/java.exe", "*/*/bin/java.exe", "*/*/*/bin/java.exe"):
+                candidates.extend(sorted(root.glob(pattern)))
+    else:
+        for root in ("/usr/lib/jvm", "/opt/java", "/usr/java"):
+            root_path = Path(root)
+            if root_path.exists():
+                for java_home_dir in sorted(root_path.glob("*")):
+                    candidates.append(_java_binary(java_home_dir))
+                    candidates.append(java_home_dir / "jre" / "bin" / java_binary_name())
     return candidates
 
 
@@ -131,7 +151,9 @@ def detect_java(config: Config, paths: Paths) -> list[dict[str, Any]]:
             resolved = str(candidate.resolve())
         except OSError:
             continue
-        if resolved in seen or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
+        if resolved in seen or not os.path.isfile(resolved):
+            continue
+        if os.name != "nt" and not os.access(resolved, os.X_OK):
             continue
         seen.add(resolved)
         bundled = _bundled_java_record(resolved, paths)
@@ -146,6 +168,7 @@ def detect_java(config: Config, paths: Paths) -> list[dict[str, Any]]:
                 text=True,
                 timeout=12,
                 check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
             )
             output = completed.stdout or ""
         except (OSError, subprocess.TimeoutExpired):
@@ -206,15 +229,16 @@ def _api_arch(arch: str) -> str:
     return {"arm64": "aarch64", "x86_64": "x64", "arm32": "arm"}.get(arch, "aarch64")
 
 
-def resolve_jdk(major: int, arch: str) -> dict[str, Any]:
+def resolve_jdk(major: int, arch: str, os_name: str | None = None) -> dict[str, Any]:
+    os_name = os_name or detect_os()
     url = ADOPTIUM_API.format(major=int(major))
-    params = f"?architecture={_api_arch(arch)}&image_type=jdk&os=linux&vendor=eclipse"
+    params = f"?architecture={_api_arch(arch)}&image_type=jdk&os={os_name}&vendor=eclipse"
     try:
         payload = get_json(url + params, timeout=30, retries=2)
     except FetchError as error:
         raise FetchError(f"无法获取 Java {major} 下载信息：{error}") from error
     if not isinstance(payload, list) or not payload:
-        raise FetchError(f"Adoptium 没有提供 Java {major} 的 Linux {arch} 安装包")
+        raise FetchError(f"Adoptium 没有提供 Java {major} 的 {os_name} {arch} 安装包")
     binary = (payload[0] or {}).get("binary") or {}
     package = binary.get("package") or {}
     if not package.get("link"):
@@ -227,19 +251,28 @@ def resolve_jdk(major: int, arch: str) -> dict[str, Any]:
         "checksum": (package.get("checksum") or "").lower(),
         "version": version,
         "major": int(major),
+        "os": os_name,
     }
 
 
 def _find_java_root(extract_dir: Path) -> Path | None:
-    if (extract_dir / "bin" / "java").exists():
-        return extract_dir
-    for entry in sorted(extract_dir.iterdir()):
+    for binary_name in ("java", "java.exe"):
+        if (extract_dir / "bin" / binary_name).exists():
+            return extract_dir
+    try:
+        entries = sorted(extract_dir.iterdir())
+    except OSError:
+        return None
+    for entry in entries:
         if entry.is_dir():
-            if (entry / "bin" / "java").exists():
-                return entry
+            for binary_name in ("java", "java.exe"):
+                if (entry / "bin" / binary_name).exists():
+                    return entry
             for nested in sorted(entry.iterdir()):
-                if nested.is_dir() and (nested / "bin" / "java").exists():
-                    return nested
+                if nested.is_dir():
+                    for binary_name in ("java", "java.exe"):
+                        if (nested / "bin" / binary_name).exists():
+                            return nested
     return None
 
 
@@ -271,7 +304,10 @@ def install_jdk(
     temp_dir = config.paths.java_dir / f".extract-{uuid.uuid4().hex[:8]}"
     temp_dir.mkdir(parents=True, exist_ok=True)
     try:
-        safe_extract_tar(archive, temp_dir)
+        if archive.name.lower().endswith(".zip"):
+            safe_extract_zip(archive, temp_dir)
+        else:
+            safe_extract_tar(archive, temp_dir)
         root = _find_java_root(temp_dir)
         if root is None:
             raise FetchError("Java 压缩包结构异常，未找到 bin/java")
@@ -279,11 +315,12 @@ def install_jdk(
         if target.exists():
             shutil.rmtree(target, ignore_errors=True)
         shutil.move(str(root), str(target))
-        java_path = target / "bin" / "java"
-        try:
-            os.chmod(java_path, 0o755)
-        except OSError:
-            pass
+        java_path = _java_binary(target)
+        if os.name != "nt":
+            try:
+                os.chmod(java_path, 0o755)
+            except OSError:
+                pass
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
         try:

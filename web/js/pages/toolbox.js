@@ -78,7 +78,7 @@ export function toolboxPage(ctx) {
   });
   root.querySelector("[data-copy-env]").addEventListener("click", async () => {
     const env = [
-      `PCL Linux ARM64 ${state.app?.version || ""}`,
+      `${state.app?.name || "PCL Launcher"} ${state.app?.version || ""}`,
       `System: ${state.app?.os || ""} ${state.app?.arch || ""}`,
       `Arch target: ${state.app?.arch_label || ""}`,
       `Versions: ${installed.map((v) => `${v.id}(${v.loader || "vanilla"})`).join(", ") || "none"}`,

@@ -31,7 +31,7 @@ const TITLES = {
   servers: ["服务器", "收藏服务器与状态测速"],
   toolbox: ["工具箱", "崩溃诊断与运行环境"],
   settings: ["设置", "启动参数与下载偏好"],
-  about: ["关于", "PCL · Linux ARM64"],
+  about: ["关于", "关于 PCL Launcher"],
 };
 
 const state = {
@@ -111,8 +111,8 @@ function updateChrome() {
   $("#accountName").textContent = state.settings?.username || "Steve";
   const accountType = $("#accountType");
   if (accountType) accountType.textContent = (state.accounts || []).length > 1 ? `${state.accounts.length} 个离线账户 · 点击切换` : "离线账户 · 点击切换";
-  const arch = state.app?.arch_label || "ARM64";
-  const osLabel = state.app?.os === "linux" ? "Linux" : (state.app?.os || "Linux");
+  const arch = state.app?.arch_label || "—";
+  const osLabel = { windows: "Windows", linux: "Linux", osx: "macOS" }[state.app?.os] || (state.app?.os || "—");
   $("#sideArch").innerHTML = `<span class="dot"></span>${esc(arch)} · ${esc(osLabel)}`;
   $$(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.route === state.route));
 
@@ -400,7 +400,7 @@ function openInstall(version) {
       <span class="badge ${source === "bmclapi" ? "warn" : "release"}">${source === "bmclapi" ? "镜像" : "官方"}</span>
     </div>
     <div class="install-option">
-      <div class="txt"><strong>自动安装缺失的 Java</strong><span>按版本要求从 Adoptium 下载 ARM64 JDK，并校验 SHA256</span></div>
+      <div class="txt"><strong>自动安装缺失的 Java</strong><span>按版本要求从 Adoptium 下载匹配平台与架构的 JDK，并校验 SHA256</span></div>
       <label class="switch"><input type="checkbox" data-auto-java ${installed ? "" : "checked"}><span class="track"></span></label>
     </div>
     <div class="disclaimer" style="margin-top:14px">
@@ -481,7 +481,7 @@ function openTaskModal(taskId, meta = {}) {
     <button class="btn btn-light" data-t-close>关闭</button>`;
   const handle = modal({
     title,
-    subtitle: kind === "java" ? "Adoptium ARM64 JDK" : "Minecraft 版本下载与安装",
+    subtitle: kind === "java" ? "Adoptium JDK" : "Minecraft 版本下载与安装",
     iconName: kind === "java" ? "coffee" : "download",
     wide: true,
     locked: true,
@@ -1004,7 +1004,8 @@ async function openVersionManage(version) {
 
   function importContent(kind) {
     const importBody = document.createElement("div");
-    importBody.innerHTML = `<div class="field"><label>本地文件路径</label><input class="input mono" id="vmImportPath" placeholder="/home/user/下载/mod.jar" spellcheck="false"><span class="hint">将从运行启动器的这台 Linux 设备复制文件到当前版本的 ${kind} 目录。</span></div>`;
+    const importPlaceholder = state.app?.os === "windows" ? "C:\\Users\\你的用户名\\Downloads\\mod.jar" : "/home/user/下载/mod.jar";
+    importBody.innerHTML = `<div class="field"><label>本地文件路径</label><input class="input mono" id="vmImportPath" placeholder="${esc(importPlaceholder)}" spellcheck="false"><span class="hint">将从运行启动器的这台设备复制文件到当前版本的 ${kind} 目录。</span></div>`;
     const importFoot = document.createElement("div");
     importFoot.style.cssText = "display:flex;align-items:center;gap:9px;width:100%";
     importFoot.innerHTML = `<span class="spacer"></span><button class="btn btn-light" data-icancel>取消</button><button class="btn btn-primary" data-import>${icon("plus")}导入</button>`;
@@ -1061,7 +1062,7 @@ function openLoaderInstall(baseGame = "") {
     </div>
     <div class="loader-note" id="loaderNote"><span class="spinner"></span>正在读取加载器版本列表…</div>
     <div class="switch-row" style="margin-top:10px">
-      <div class="switch-text"><strong>自动准备所需 Java</strong><span>检测到本机缺少对应 Java 时从 Adoptium 下载 ARM64 JDK</span></div>
+      <div class="switch-text"><strong>自动准备所需 Java</strong><span>检测到本机缺少对应 Java 时从 Adoptium 下载匹配平台的 JDK</span></div>
       <label class="switch"><input type="checkbox" id="loaderAutoJava" checked><span class="track"></span></label>
     </div>
     <p class="hint" style="margin-top:10px">Fabric / Quilt 直接合并官方 profile；Forge / NeoForge 会下载官方 installer 并执行 --installClient，耗时较长。安装完成后会出现在“版本管理”中。</p>`;

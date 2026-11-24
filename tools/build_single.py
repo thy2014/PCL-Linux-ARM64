@@ -42,7 +42,7 @@ def payload(raw: bytes) -> str:
 
 
 TEMPLATE = '''#!/usr/bin/env python3
-"""PCL Linux ARM64 单文件版。首次运行会释放内置运行时到缓存目录。"""
+"""PCL Launcher 单文件版。首次运行会释放内置运行时到缓存目录。"""
 from __future__ import annotations
 
 import base64
@@ -66,11 +66,14 @@ PAYLOAD = (
 def _runtime_root() -> Path:
     raw = zlib.decompress(base64.b85decode(PAYLOAD))
     digest = hashlib.sha256(raw).hexdigest()[:16]
-    base = Path(os.environ.get("PCL_SINGLE_HOME") or (Path.home() / ".cache" / "pcl-linux-arm64" / "single"))
+    if os.name == "nt":
+        base = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "PCL" / "runtime" / "single"
+    else:
+        base = Path(os.environ.get("PCL_SINGLE_HOME") or (Path.home() / ".cache" / "pcl-launcher" / "single"))
     try:
         base.mkdir(parents=True, exist_ok=True)
     except OSError:
-        base = Path(tempfile.gettempdir()) / "pcl-linux-arm64-single"
+        base = Path(tempfile.gettempdir()) / "pcl-launcher-single"
         base.mkdir(parents=True, exist_ok=True)
     target = base / digest
     marker = target / ".complete"

@@ -201,8 +201,13 @@ def build_launch(
     main_class = str(version_json.get("mainClass") or "")
     if not main_class:
         raise FetchError("版本 JSON 缺少 mainClass")
+    java_executable = str(java["path"])
+    if os.name == "nt":
+        javaw = Path(java_executable).with_name("javaw.exe")
+        if javaw.exists():
+            java_executable = str(javaw)
     command = [
-        java["path"],
+        java_executable,
         f"-Xmx{memory}M",
         f"-Xms{min_memory}M",
         *user_jvm,

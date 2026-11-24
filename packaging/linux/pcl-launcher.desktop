@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PCL Launcher
+Comment=Plain Craft Launcher 风格 Minecraft 启动器
+Exec=pcl-launcher
+Icon=pcl-launcher
+Terminal=false
+Categories=Game;
+StartupNotify=true

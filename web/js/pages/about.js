@@ -8,11 +8,18 @@ export function aboutPage(ctx) {
   const root = document.createElement("div");
   root.className = "page";
   const projectUrl = app.project_url || "https://github.com/thy2014/PCL-Linux-ARM64";
+  const platform = { windows: "Windows", linux: "Linux", osx: "macOS" }[app.os] || (app.os || "当前系统");
+  const linuxArm64 = app.os === "linux" && app.arch === "arm64";
+  const nativeNote = linuxArm64
+    ? "Minecraft 1.19+ 使用 LWJGL 3.3.x，可直接使用 arm64 natives；1.13-1.18 多为 LWJGL 3.1/3.2，Maven 无 arm64 构建；1.12 及更早使用 LWJGL 2，无法在纯 ARM64 环境运行。详见仓库 docs/ARM64.md。"
+    : app.os === "windows"
+      ? "Minecraft 1.13+ 的 LWJGL 3 原生库由官方清单按 Windows x64/ARM64 自动匹配；1.12 及更早使用 LWJGL 2，Windows 官方提供 32/64 位原生库。"
+      : "原生库由官方版本清单按当前平台与架构自动匹配。";
 
   const features = [
     ["download", "版本下载", "Mojang 正式版 / 快照 / 远古版，客户端、依赖库、资源索引与资源对象全量安装，SHA1 校验并可断点续传。"],
-    ["chip", "ARM64 原生", "自动把 LWJGL 3.3+ 的 linux 原生库替换为 natives-linux-arm64，并识别 LWJGL 2 的不兼容版本。"],
-    ["coffee", "Java 托管", "检测系统 Java，缺失时从 Adoptium 下载 ARM64 JDK 8/17/21，校验 SHA256 后解压到数据目录。"],
+    ["chip", "原生库适配", "按当前系统与架构自动选择 LWJGL 原生库；Linux ARM64 下把 LWJGL 3.3+ 的 linux 原生库替换为 natives-linux-arm64，并识别 LWJGL 2 的不兼容版本。"],
+    ["coffee", "Java 托管", "检测系统 Java，缺失时从 Adoptium 下载与当前平台 / 架构匹配的 JDK 8/17/21，校验 SHA256 后解压到数据目录。"],
     ["plug", "加载器", "Fabric、Quilt、Forge、NeoForge 查询与真实安装，推荐版本、Beta 标记与自动 Java。"],
     ["package", "资源下载", "Modrinth 模组 / 整合包 / 资源包 / 光影搜索、版本匹配、前置依赖与 SHA1 校验。"],
     ["archive", "内容管理", "模组启停、资源包 options.txt 同步、光影扫描、存档 NBT 读取、导入与 zip 备份。"],
@@ -21,7 +28,7 @@ export function aboutPage(ctx) {
     ["server", "服务器", "收藏服务器、Minecraft Server List Ping 延迟/MOTD/人数/favicon，一键带地址启动。"],
     ["wrench", "崩溃诊断", "扫描 latest.log 与 crash-reports，识别内存、Java、OpenGL、模组冲突、重复模组等问题。"],
     ["terminal", "实时日志", "启动输出实时回传界面，同时写入 logs/launch-*.log，支持结束进程与复制启动命令。"],
-    ["sliders", "设置与主题", "下载源、线程数、ARM64 补丁、版本隔离、七套主题与全局/版本级启动参数。"],
+    ["sliders", "设置与主题", "下载源、线程数、原生库适配、版本隔离、七套主题与全局/版本级启动参数。"],
   ].map(([iconName, title, text]) => `
     <div class="feature">
       <div class="f-icon">${icon(iconName)}</div>
@@ -33,11 +40,11 @@ export function aboutPage(ctx) {
     <section class="about-hero">
       <div class="about-logo">${logoBadge()}</div>
       <div class="about-copy">
-        <h2>PCL · Linux ARM64</h2>
-        <p>${esc(app.tagline || "Plain Craft Launcher · Linux ARM64 社区版")}。面向 ARM64 Linux 的轻量 Minecraft 启动器，不需要 Electron，不需要第三方依赖。</p>
+        <h2>${esc(app.name || "PCL Launcher")}</h2>
+        <p>${esc(app.tagline || "Plain Craft Launcher · 跨平台社区版")}。一套代码同时运行在 Windows 与 Linux ARM64 上，界面与功能保持一致；不需要 Electron，不需要第三方依赖。</p>
         <div class="about-chips">
           <span class="meta-chip">版本 ${esc(app.version || "1.0.0")}</span>
-          <span class="meta-chip">${esc(app.arch_label || "ARM64")} / ${esc(app.os || "linux")}</span>
+          <span class="meta-chip">${esc(app.arch_label || "—")} / ${esc(platform)}</span>
           <span class="meta-chip">Python 3 标准库</span>
           <span class="meta-chip">MIT License</span>
         </div>
@@ -81,7 +88,7 @@ export function aboutPage(ctx) {
         <div class="kv"><span>Java</span><strong style="font-size:11px">${esc(dirs.java || "—")}</strong></div>
         <div class="kv"><span>日志</span><strong style="font-size:11px">${esc(dirs.logs || "—")}</strong></div>
         <div class="disclaimer" style="margin-top:14px">
-          <strong style="color:var(--ink-2)">ARM64 提示：</strong>Minecraft 1.19+ 使用 LWJGL 3.3.x，可直接使用 arm64 natives；1.13-1.18 多为 LWJGL 3.1/3.2，Maven 无 arm64 构建；1.12 及更早使用 LWJGL 2，无法在纯 ARM64 环境运行。详见仓库 <span class="mono" style="font-size:10px">docs/ARM64.md</span>。
+          <strong style="color:var(--ink-2)">${esc(platform)} 提示：</strong>${esc(nativeNote)}
         </div>
         <div class="disclaimer" style="margin-top:10px">
           <strong style="color:var(--ink-2)">PCL2 差异：</strong>微软正版登录、CurseForge、OptiFine 自动安装暂未内置，原因见 README 的“与 PCL2 的差异”。

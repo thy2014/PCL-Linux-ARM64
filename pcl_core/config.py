@@ -8,9 +8,9 @@ import threading
 from pathlib import Path
 from typing import Any
 
-APP_NAME = "PCL Linux ARM64"
+APP_NAME = "PCL Launcher"
 APP_VERSION = "1.0.0"
-APP_TAGLINE = "Plain Craft Launcher · Linux ARM64 社区版"
+APP_TAGLINE = "Plain Craft Launcher · 跨平台社区版"
 PROJECT_URL = "https://github.com/thy2014/PCL-Linux-ARM64"
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -38,7 +38,7 @@ def detect_arch() -> str:
     override = os.environ.get("PCL_ARCH", "").strip().lower()
     if override in ("arm64", "aarch64"):
         return "arm64"
-    if override in ("x86_64", "amd64"):
+    if override in ("x86_64", "amd64", "x64"):
         return "x86_64"
     if override in ("arm32", "armv7", "armv7l"):
         return "arm32"
@@ -65,11 +65,23 @@ def is_arm64(arch: str) -> bool:
     return arch == "arm64"
 
 
+def default_data_dir() -> Path:
+    """按平台返回应用数据目录。"""
+    if os.name == "nt":
+        base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+        return Path(base) / "PCL"
+    return Path.home() / ".pcl-arm64"
+
+
+def java_binary_name() -> str:
+    return "java.exe" if os.name == "nt" else "java"
+
+
 class Paths:
     """应用数据目录。"""
 
     def __init__(self, data_dir: str | None = None) -> None:
-        raw = data_dir or os.environ.get("PCL_DATA_DIR") or str(Path.home() / ".pcl-arm64")
+        raw = data_dir or os.environ.get("PCL_DATA_DIR") or str(default_data_dir())
         self.data_dir = Path(os.path.expanduser(raw)).resolve()
         self.java_dir = self.data_dir / "java"
         self.logs_dir = self.data_dir / "logs"

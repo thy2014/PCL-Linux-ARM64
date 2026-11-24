@@ -18,7 +18,7 @@ from .tasks import Task
 from .util import atomic_write_json, now_iso, read_json, sha1_file, directory_size, valid_version_id
 
 API = "https://api.modrinth.com/v2"
-USER_AGENT = f"{APP_NAME}/{APP_VERSION} (Linux ARM64 launcher)"
+USER_AGENT = f"{APP_NAME}/{APP_VERSION} (cross-platform launcher)"
 PROJECT_TYPES = {"mod": "mod", "modpack": "modpack", "resourcepack": "resourcepack", "shader": "shader"}
 CONTENT_DIRS = {"mod": "mods", "resourcepack": "resourcepacks", "shader": "shaderpacks"}
 

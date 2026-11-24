@@ -1,4 +1,4 @@
-"""版本安装：客户端、依赖库、资源文件、ARM64 原生库与 Java。"""
+"""版本安装：客户端、依赖库、资源文件、平台原生库与 Java。"""
 from __future__ import annotations
 
 import os
@@ -174,7 +174,7 @@ def install_version(
     if selected_java is None and auto_java:
         if not java_runtime.has_suitable(config, paths, required):
             selected_java = required
-            task.log(f"本机缺少 Java {required}，将在安装完成后自动下载 ARM64 JDK")
+            task.log(f"本机缺少 Java {required}，将在安装完成后自动下载匹配平台的 JDK")
     if selected_java:
         task.set_phase(f"检查 Java {selected_java}")
         jdk_asset = java_runtime.resolve_jdk(int(selected_java), arch)

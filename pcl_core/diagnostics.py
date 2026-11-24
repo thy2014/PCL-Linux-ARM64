@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .config import Config, detect_arch
+from .config import Config, detect_arch, detect_os
 from .http_client import FetchError
 from .minecraft import MinecraftService
 
@@ -27,7 +27,7 @@ PATTERNS: list[dict[str, Any]] = [
         "re": r"GLFW error|Failed to create window|Pixel format not accelerated|No GL context|OpenGL",
         "level": "error",
         "title": "图形环境初始化失败",
-        "suggestion": "确认系统有可用的 OpenGL 驱动；SSH/无桌面环境无法启动游戏。ARM64 设备请检查 LWJGL arm64 原生库是否完整。",
+        "suggestion": "确认系统有可用的 OpenGL 驱动；SSH/无桌面环境无法启动游戏。Linux ARM64 设备请检查 LWJGL arm64 原生库是否完整。",
     },
     {
         "re": r"Mixin apply failed|Incompatible mod set|mod incompatibility|requires .* which is missing|Missing or unsupported mandatory dependencies",
@@ -65,12 +65,6 @@ PATTERNS: list[dict[str, Any]] = [
         "title": "网络下载失败",
         "suggestion": "切换下载源、检查网络/代理后重试；安装时不要关闭启动器。",
     },
-    {
-        "re": r"LWJGL 2|legacy LWJGL|org.lwjgl.LWJGLException",
-        "level": "warn",
-        "title": "旧版 LWJGL 与 ARM64",
-        "suggestion": "1.12 及更早版本使用 LWJGL 2，官方没有 ARM64 原生库，可能无法在此设备启动。",
-    },
 ]
 
 
@@ -94,8 +88,18 @@ def analyze(config: Config, service: MinecraftService, version_id: str) -> dict[
     report_text = _tail(reports[0], 400) if reports else ""
     log_text = _tail(latest_log, 240)
     haystack = (report_text + "\n" + log_text).strip()
+    patterns = list(PATTERNS)
+    if detect_os() == "linux" and detect_arch() == "arm64":
+        patterns.append(
+            {
+                "re": r"LWJGL 2|legacy LWJGL|org.lwjgl.LWJGLException",
+                "level": "warn",
+                "title": "旧版 LWJGL 与 ARM64",
+                "suggestion": "1.12 及更早版本使用 LWJGL 2，官方没有 ARM64 原生库，可能无法在此设备启动。",
+            }
+        )
     issues = []
-    for item in PATTERNS:
+    for item in patterns:
         match = re.search(item["re"], haystack, re.IGNORECASE)
         if match:
             evidence = ""
