@@ -8,6 +8,23 @@
 
 ---
 
+## 单文件版（只下载一个文件）
+
+仓库根目录的 [`pcl-single.py`](pcl-single.py) 已内置后端全部 Python 模块与 `web/` 前端资源，不需要 `pcl_core/`、`web/`、截图或任何第三方依赖。
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/pcl-single.py -o pcl-single.py
+python3 pcl-single.py
+```
+
+默认打开 `http://127.0.0.1:3919/`。首次运行会把内置运行时释放到 `~/.cache/pcl-linux-arm64/single/<内容哈希>/`，之后直接复用；数据与游戏目录仍是 `~/.pcl-arm64` 与 `~/.minecraft`。
+
+- 只需要 Python 3.10+，不需要克隆仓库、不需要 `pip install`。
+- 仍然支持 ARM64 原生库替换、加载器安装、Modrinth、账户、服务器测速、诊断与全部界面功能。
+- 单文件版不包含文档截图与测试；修改源码后可用 `python3 tools/build_single.py` 重新生成。
+
+---
+
 ## 界面预览
 
 | 主页 | 下载 |
@@ -226,7 +243,10 @@ python3 pcl.py --game-dir ~/Games/Minecraft --port 4000 --no-browser
 ## 项目结构
 
 ```text
-pcl.py                     # 入口、CLI、本地 HTTP 服务启动
+pcl.py                     # 多文件版入口、CLI、本地 HTTP 服务启动
+pcl-single.py              # 单文件版（内置 pcl_core 与 web/）
+tools/
+└── build_single.py        # 重新生成 pcl-single.py
 pcl_core/
 ├── config.py              # 配置、目录、架构检测、版本隔离
 ├── util.py                # 哈希、解压、UUID、原子写入、路径安全
