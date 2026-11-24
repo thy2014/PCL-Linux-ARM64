@@ -1,0 +1,28 @@
+name: Import repository
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download source archive
+        run: |
+          curl -L --fail --retry 3 --retry-delay 2 "https://aka.doubaocdn.com/s/LI3w4wDyYn" -o /tmp/pcl-repo.tar.gz
+          tar -xzf /tmp/pcl-repo.tar.gz -C "$GITHUB_WORKSPACE" --strip-components=1
+          rm -f .github/workflows/import.yml
+      - name: Commit imported files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: import full PCL Linux ARM64 source and screenshots"
+          git push
