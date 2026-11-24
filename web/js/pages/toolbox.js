@@ -18,9 +18,8 @@ export function toolboxPage(ctx) {
 
   root.innerHTML = `
     <div class="card page-toolbar">
-      <div class="search-box" style="max-width:360px">
-        ${icon("layers")}
-        <select class="select borderless" id="diagVersion" style="border:0;background:transparent;box-shadow:none">${versionOptions}</select>
+      <div class="search-box" style="max-width:380px">
+        <select class="select borderless" id="diagVersion" style="border:0;background:transparent;box-shadow:none;padding-left:14px;width:100%">${versionOptions}</select>
       </div>
       <div class="toolbar-right">
         <button class="btn btn-light btn-sm" data-open-logs>${icon("folder")}日志目录</button>
