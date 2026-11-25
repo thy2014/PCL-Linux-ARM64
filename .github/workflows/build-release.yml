@@ -17,8 +17,10 @@ jobs:
           fetch-depth: 0
       - name: Sync cross-platform source from archive
         run: |
-          curl -L --fail --retry 3 --retry-delay 2 "https://aka.doubaocdn.com/s/fyanZCuUXL" -o /tmp/pcl-src.tar.gz
+          curl -L --fail --retry 3 --retry-delay 2 "https://aka.doubaocdn.com/s/AUSBmbgd5q" -o /tmp/pcl-src.tar.gz
           tar -xzf /tmp/pcl-src.tar.gz -C "$GITHUB_WORKSPACE" --strip-components=1
+          mkdir -p web/assets
+          cp packaging/linux/pcl-launcher.png web/assets/app.png
       - name: Commit source
         run: |
           git config user.name "github-actions[bot]"
@@ -61,7 +63,7 @@ jobs:
           $data = Join-Path $env:TEMP "pcl-ci-data"
           $game = Join-Path $env:TEMP "pcl-ci-game"
           Remove-Item -Recurse -Force $data, $game -ErrorAction SilentlyContinue
-          $p = Start-Process -FilePath ".\dist\PCL-Launcher.exe" -ArgumentList "--no-browser", "--port", "3990", "--data-dir", $data, "--game-dir", $game -PassThru
+          $p = Start-Process -FilePath ".\dist\PCL-Launcher.exe" -ArgumentList "--no-window", "--no-browser", "--port", "3990", "--data-dir", $data, "--game-dir", $game -PassThru
           Start-Sleep -Seconds 5
           python packaging/windows/capture-windows.py
           Get-Process PCL-Launcher -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -88,6 +90,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install window shell
+        run: python -m pip install --disable-pip-version-check --quiet pywebview
       - name: Build Linux ARM64 packages
         run: bash packaging/linux/build_deb.sh
       - name: Commit packages
