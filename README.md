@@ -6,7 +6,7 @@
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows 10/11 x64 | [`dist/PCL-Launcher.exe`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher.exe) | 单文件窗口程序，双击运行，已自带 Python 与 WebView2 窗口壳 |
+| Windows 10/11 x64 | [`dist/PCL-Launcher.exe`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher.exe) | 单文件窗口程序，双击运行，已自带 Python；窗口使用系统 WebView2 |
 | Linux ARM64 · Debian/Ubuntu | [`dist/PCL-Launcher_1.0.0_arm64.deb`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher_1.0.0_arm64.deb) | ARM64 安装包，已自带 Python 3 运行时；系统只需 GTK3 + WebKit2GTK |
 | Linux ARM64 · 通用 | [`dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz) | 解压后直接运行或在本地安装，不要求 Python |
 | 调试源码 | [`pcl-single.py`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/pcl-single.py) | 仅此文件需要系统 Python 3.10+ |
@@ -59,7 +59,7 @@ cd PCL-Launcher_1.0.0_linux_arm64
 ./uninstall.sh --purge    # 连同数据目录一起删除
 ```
 
-tar 包不包含 Python，运行的是与 `.deb` 相同的自带运行时二进制。只要求系统提供 GTK3 与 WebKit2GTK：
+tar 包不要求系统 Python；里面的 `PCL-Launcher` 与 `.deb` 使用同一个自带运行时的二进制。只要求系统提供 GTK3 与 WebKit2GTK：
 
 ```bash
 # Debian / Ubuntu
