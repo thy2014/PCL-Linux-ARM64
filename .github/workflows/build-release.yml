@@ -15,9 +15,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Sync cross-platform source from archive
+      - name: Sync current desktop-window source
         run: |
-          curl -L --fail --retry 3 --retry-delay 2 "https://aka.doubaocdn.com/s/AUSBmbgd5q" -o /tmp/pcl-src.tar.gz
+          curl -L --fail --retry 3 --retry-delay 2 "https://aka.doubaocdn.com/s/rphHwpTt9S" -o /tmp/pcl-src.tar.gz
           tar -xzf /tmp/pcl-src.tar.gz -C "$GITHUB_WORKSPACE" --strip-components=1
           mkdir -p web/assets
           cp packaging/linux/pcl-launcher.png web/assets/app.png
@@ -29,7 +29,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No source changes"
           else
-            git commit -m "chore: sync cross-platform source"
+            git commit -m "chore: sync desktop-window source"
             git push
           fi
 
@@ -50,7 +50,7 @@ jobs:
       - name: Build single-file exe
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check --quiet pyinstaller playwright
+          python -m pip install --disable-pip-version-check --quiet pyinstaller pywebview playwright
           ./packaging/windows/build.ps1
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item -Force dist\windows\PCL-Launcher.exe dist\PCL-Launcher.exe
