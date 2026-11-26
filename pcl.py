@@ -99,8 +99,23 @@ class DesktopBridge:
         return str(result)
 
 
+def _ensure_gi_typelib_path() -> None:
+    """让 PyInstaller 内置的 gi 也能找到系统安装的 WebKit2/Soup typelib。"""
+    if os.name != "posix":
+        return
+    import glob
+
+    parts = [p for p in os.environ.get("GI_TYPELIB_PATH", "").split(os.pathsep) if p]
+    for path in ["/usr/lib/girepository-1.0", *glob.glob("/usr/lib/*/girepository-1.0")]:
+        if path not in parts:
+            parts.append(path)
+    if parts:
+        os.environ["GI_TYPELIB_PATH"] = os.pathsep.join(parts)
+
+
 def _run_window(server, url: str, config: Config) -> None:
     """启动 pywebview 桌面窗口；阻塞到窗口关闭。"""
+    _ensure_gi_typelib_path()
     import webview
 
     bridge = DesktopBridge(str(config.game_dir))

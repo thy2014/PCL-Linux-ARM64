@@ -18,17 +18,6 @@ mkdir -p "$DIST"
 python3 tools/build_single.py
 
 echo "[1/4] PyInstaller 单文件（内置 Python 3 运行时）"
-GI_EXTRA=$(mktemp -d)
-mkdir -p "$GI_EXTRA/gi_typelibs"
-for typ in WebKit2-4.0 WebKit2-4.1 Soup-2.4 SoupGNOME-2.4; do
-  src=$(find /usr/lib -path "*/girepository-1.0/$typ.typelib" -print -quit 2>/dev/null || true)
-  [ -n "$src" ] && cp "$src" "$GI_EXTRA/gi_typelibs/"
-done
-EXTRA_ARGS=""
-if [ -n "$(ls -A "$GI_EXTRA/gi_typelibs" 2>/dev/null || true)" ]; then
-  EXTRA_ARGS="--add-data $GI_EXTRA/gi_typelibs:gi_typelibs"
-fi
-
 python3 -m PyInstaller \
   --noconfirm \
   --clean \
@@ -38,7 +27,6 @@ python3 -m PyInstaller \
   --workpath "$WORK/build" \
   --specpath "$WORK" \
   --add-data "$ROOT/web:web" \
-  $EXTRA_ARGS \
   --collect-all webview \
   --collect-all gi \
   --hidden-import "webview.platforms.gtk" \
