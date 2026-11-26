@@ -98,14 +98,14 @@ export function logoBadge() {
   return `<svg viewBox="0 0 48 48" aria-hidden="true">
     <defs>
       <linearGradient id="logoBg2" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#2f5bea"/><stop offset="1" stop-color="#6f9bff"/>
+        <stop offset="0" style="stop-color:var(--brand)"/><stop offset="1" style="stop-color:var(--brand-deep)"/>
       </linearGradient>
     </defs>
     <rect x="1" y="1" width="46" height="46" rx="14" fill="url(#logoBg2)"/>
     <rect x="1" y="1" width="46" height="46" rx="14" fill="none" stroke="rgba(255,255,255,.2)"/>
     <path d="M13 11h9v26h-6V17H13z" fill="#fff"/>
     <path d="M22 11h9.5a7 7 0 0 1 0 14H22z" fill="#fff"/>
-    <rect x="25" y="14" width="6" height="8" rx="1" fill="#2f5bea"/>
+    <rect x="25" y="14" width="6" height="8" rx="1" fill="var(--brand)"/>
     <rect x="13" y="31" width="6" height="6" fill="#ffb23f"/>
   </svg>`;
 }

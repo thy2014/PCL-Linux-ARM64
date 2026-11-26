@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import shutil
 import tarfile
 import time
@@ -13,11 +12,16 @@ import zipfile
 from pathlib import Path
 from typing import Iterable
 
-_VERSION_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+_VERSION_ID_FORBIDDEN = set('\\/:*?"<>|')
 
 
 def valid_version_id(version_id: str) -> bool:
-    return bool(version_id and _VERSION_ID_RE.match(version_id))
+    """版本文件夹名：允许中文/空格，但绝不能成为跳出 versions 的路径。"""
+    if not version_id or len(version_id) > 96 or version_id in (".", ".."):
+        return False
+    if not (version_id[0].isalnum() or version_id[0] == "_"):
+        return False
+    return not any(ch in _VERSION_ID_FORBIDDEN or ord(ch) < 32 for ch in version_id)
 
 
 def human_bytes(size: float | int | None) -> str:

@@ -1,2 +1,4 @@
-# PCL Linux ARM64 运行时仅使用 Python 标准库，无第三方依赖。
-# 需要 Python 3.10 或更高版本。
+# PCL Launcher 使用 pywebview 作为桌面窗口壳。
+# Windows 使用系统 WebView2；Linux 使用系统 GTK3 + WebKit2GTK。
+# 下载、安装、启动等后端逻辑仍只依赖 Python 标准库。
+pywebview>=6.2,<7

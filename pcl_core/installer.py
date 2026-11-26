@@ -97,6 +97,7 @@ def install_version(
     version_type: str | None = None,
     game_version: str | None = None,
     extra_meta: dict[str, Any] | None = None,
+    finalize: bool = True,
 ) -> None:
     if not valid_version_id(version_id):
         raise FetchError("版本名不合法")
@@ -396,9 +397,10 @@ def install_version(
                 meta[key] = value
     atomic_write_json(meta_file, meta)
 
-    task.set_phase("安装完成")
-    task.set_current(f"{version_id} 已就绪")
-    task.finish(f"{version_id} 安装完成")
+    if finalize:
+        task.set_phase("安装完成")
+        task.set_current(f"{version_id} 已就绪")
+        task.finish(f"{version_id} 安装完成")
 
 
 def delete_version(config: Config, version_id: str) -> int:

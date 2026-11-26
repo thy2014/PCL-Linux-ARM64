@@ -34,6 +34,22 @@ if sys.version_info < (3, 10):
     raise SystemExit("错误：需要 Python 3.10+，当前为 %s" % sys.version.split()[0])
 PY
 
+if ! python3 - <<'PY' >/dev/null 2>&1
+import gi
+gi.require_version("Gtk", "3.0")
+try:
+    gi.require_version("WebKit2", "4.1")
+except ValueError:
+    gi.require_version("WebKit2", "4.0")
+from gi.repository import Gtk, WebKit2
+PY
+then
+    echo "提示：桌面窗口需要 Python 3 的 GTK3 + WebKit2GTK 运行时。" >&2
+    echo "      Debian/Ubuntu：sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.0" >&2
+    echo "      Fedora：sudo dnf install python3-gobject webkit2gtk4.1" >&2
+    echo "      缺少时仍可用 --browser 模式，但无法使用原生目录选择器。" >&2
+fi
+
 mkdir -p "$APP_DIR" "$BIN_DIR" "$DESKTOP_DIR"
 cp "$HERE/pcl-single.py" "$APP_DIR/pcl-single.py"
 cp "$HERE/pcl-launcher.png" "$APP_DIR/pcl-launcher.png"

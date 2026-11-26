@@ -3,10 +3,10 @@ $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $root
 
-Write-Host "[1/3] 检查 PyInstaller"
-python -m pip install --disable-pip-version-check --quiet --upgrade pyinstaller
+Write-Host "[1/3] 检查 PyInstaller 与窗口依赖"
+python -m pip install --disable-pip-version-check --quiet --upgrade pyinstaller pywebview
 
-Write-Host "[2/3] 构建单文件 exe"
+Write-Host "[2/3] 构建单文件窗口 exe"
 python -m PyInstaller `
   --noconfirm `
   --clean `
@@ -16,6 +16,8 @@ python -m PyInstaller `
   --icon "packaging\windows\icon.ico" `
   --version-file "packaging\windows\version_info.txt" `
   --add-data "web;web" `
+  --hidden-import "webview.platforms.edgechromium" `
+  --collect-all "webview" `
   pcl.py
 
 $source = Join-Path $root "dist\PCL-Launcher.exe"

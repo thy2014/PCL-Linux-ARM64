@@ -403,6 +403,22 @@ function openInstall(version) {
       <div class="txt"><strong>自动安装缺失的 Java</strong><span>按版本要求从 Adoptium 下载匹配平台与架构的 JDK，并校验 SHA256</span></div>
       <label class="switch"><input type="checkbox" data-auto-java ${installed ? "" : "checked"}><span class="track"></span></label>
     </div>
+    <div class="install-option" style="align-items:flex-start">
+      <div class="txt"><strong>模组加载器</strong><span>可选。和原版一起装好，加载器会作为独立版本出现在“版本管理”里。</span></div>
+      <select class="select" id="installLoaderType" style="width:150px;flex:none">
+        <option value="">不安装加载器</option>
+        <option value="fabric">Fabric</option>
+        <option value="forge">Forge</option>
+        <option value="neoforge">NeoForge</option>
+        <option value="quilt">Quilt</option>
+      </select>
+    </div>
+    <div class="field" id="installLoaderVersionField" style="display:none">
+      <label>加载器版本</label>
+      <input class="input" id="installLoaderVersion" list="installLoaderVersionOptions" placeholder="选择加载器后读取版本…" spellcheck="false" autocomplete="off">
+      <datalist id="installLoaderVersionOptions"></datalist>
+      <span class="hint" id="installLoaderNote">会先安装原版，再安装所选加载器；整个过程在同一个任务里完成。</span>
+    </div>
     <div class="disclaimer" style="margin-top:14px">
       将下载客户端 jar、全部依赖库、资源索引与数千个资源对象，并逐个校验 SHA1。已有文件会自动跳过，因此重复安装很快。
       ${installed ? "<br><strong>该版本已安装，重新安装只会覆盖版本文件，不会删除存档。</strong>" : ""}
@@ -426,17 +442,70 @@ function openInstall(version) {
   foot.querySelector("[data-cancel]").addEventListener("click", () => handle.close());
   const launchBtn = foot.querySelector("[data-launch-installed]");
   if (launchBtn) launchBtn.addEventListener("click", async () => { handle.close(); await launch(version); });
+
+  const loaderTypeEl = body.querySelector("#installLoaderType");
+  const loaderVersionEl = body.querySelector("#installLoaderVersion");
+  const loaderField = body.querySelector("#installLoaderVersionField");
+  const loaderNote = body.querySelector("#installLoaderNote");
+  let loaderSeq = 0;
+  async function refreshLoaderVersions() {
+    const type = loaderTypeEl.value;
+    const optionsEl = body.querySelector("#installLoaderVersionOptions");
+    if (!type) {
+      loaderField.style.display = "none";
+      loaderVersionEl.value = "";
+      loaderVersionEl.placeholder = "选择加载器后读取版本…";
+      if (optionsEl) optionsEl.innerHTML = "";
+      return;
+    }
+    const seq = ++loaderSeq;
+    loaderField.style.display = "flex";
+    loaderVersionEl.value = "";
+    loaderVersionEl.placeholder = "读取中…";
+    if (optionsEl) optionsEl.innerHTML = "";
+    loaderNote.textContent = `正在读取 ${type === "neoforge" ? "NeoForge" : type[0].toUpperCase() + type.slice(1)} 的版本列表…`;
+    try {
+      const source = state.settings?.download_source || "official";
+      const data = await api(`/api/loader/versions?type=${encodeURIComponent(type)}&game=${encodeURIComponent(version)}&source=${encodeURIComponent(source)}`, { timeout: 20000 });
+      if (seq !== loaderSeq) return;
+      const versions = data.versions || [];
+      const recommended = data.recommended || "";
+      if (!versions.length) {
+        loaderVersionEl.placeholder = "没有可用版本，可手动输入";
+        loaderNote.textContent = data.note || "这个 Minecraft 版本没有对应的加载器版本。";
+        return;
+      }
+      if (optionsEl) {
+        optionsEl.innerHTML = versions.map((item) => `<option value="${esc(item.version)}">${esc(item.version)}${item.version === recommended ? " · 推荐" : item.recommended ? " · 推荐" : ""}${item.stable === false ? " · Beta" : ""}</option>`).join("");
+      }
+      if (!loaderVersionEl.value) loaderVersionEl.value = recommended || versions[0].version;
+      loaderVersionEl.placeholder = "可手动输入";
+      loaderNote.textContent = `已找到 ${versions.length} 个版本，推荐 ${recommended || versions[0].version}。`;
+    } catch (error) {
+      if (seq !== loaderSeq) return;
+      loaderVersionEl.value = "";
+      loaderVersionEl.placeholder = "获取失败，可手动输入";
+      loaderNote.innerHTML = `${esc(error.message)} <button class="btn btn-light btn-sm" type="button" data-loader-retry>重试</button>`;
+      loaderNote.querySelector("[data-loader-retry]")?.addEventListener("click", refreshLoaderVersions);
+    }
+  }
+  loaderTypeEl.addEventListener("change", refreshLoaderVersions);
+
   foot.querySelector("[data-start]").addEventListener("click", async () => {
     const autoJava = body.querySelector("[data-auto-java]").checked;
+    const loaderType = loaderTypeEl.value;
+    const loaderVersion = loaderVersionEl.value;
+    if (loaderType && !loaderVersion) { toast("请选择加载器版本", "error"); return; }
     handle.close();
     try {
       const data = await api("/api/install", {
         method: "POST",
-        body: { version, source, auto_java: autoJava },
+        body: { version, source, auto_java: autoJava, loader_type: loaderType, loader_version: loaderVersion },
       });
       state.tasks = [data.task, ...(state.tasks || [])];
       updateChrome();
-      openTaskModal(data.task_id, { kind: "install", title: `安装 ${version}`, version, source });
+      const loaderName = { fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt" }[loaderType] || loaderType;
+      openTaskModal(data.task_id, { kind: "install", title: loaderType ? `安装 ${version} + ${loaderName}` : `安装 ${version}`, version, source });
     } catch (error) {
       toast(error.message, "error", 5000);
     }
@@ -647,6 +716,42 @@ async function openPath(target, version = "", kind = "") {
 
 async function openFolder(target, version = "") {
   return openPath(target, version);
+}
+
+/* ---------- 桌面窗口的目录选择 ---------- */
+function waitForPywebviewApi(timeout = 900) {
+  if (window.pywebview?.api?.choose_directory) return Promise.resolve(window.pywebview.api);
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve(window.pywebview?.api || null);
+    };
+    window.addEventListener("pywebviewready", finish, { once: true });
+    setTimeout(finish, timeout);
+  });
+}
+
+async function chooseGameDirectory() {
+  const input = document.querySelector("#setGameDir");
+  if (!input) return;
+  const current = input.value.trim();
+  const desktop = await waitForPywebviewApi();
+  if (!desktop?.choose_directory) {
+    toast("当前是浏览器模式，无法调用系统目录选择器；请从桌面窗口打开启动器，或手动输入路径。", "info", 6000);
+    return;
+  }
+  try {
+    const selected = await desktop.choose_directory(current);
+    if (!selected) return;
+    input.value = selected;
+    const hint = document.querySelector("#saveHint");
+    if (hint) hint.textContent = "已选择游戏目录，点击“保存设置”后生效";
+    toast("已选择游戏目录，保存后生效", "success", 5000);
+  } catch (error) {
+    toast(`选择目录失败：${error?.message || error}`, "error", 6000);
+  }
 }
 
 /* ---------- 账户管理 ---------- */
@@ -1029,125 +1134,6 @@ async function openVersionManage(version) {
   loadContent();
 }
 
-/* ---------- 加载器安装 ---------- */
-function openLoaderInstall(baseGame = "") {
-  const games = (state.versions || []).filter((item) => item.type === "release" || item.type === "snapshot").map((item) => item.id);
-  const installedGames = [...new Set((state.installed || []).map((item) => item.game_version).filter(Boolean))];
-  const defaultGame = baseGame || state.latest?.release || installedGames[0] || games[0] || "";
-  const dataList = [...new Set([...games, ...installedGames])].slice(0, 400);
-  const body = document.createElement("div");
-  const foot = document.createElement("div");
-  foot.style.cssText = "display:flex;align-items:center;gap:9px;width:100%";
-  const handle = modal({
-    title: "安装模组加载器",
-    subtitle: "Fabric / Quilt / Forge / NeoForge",
-    iconName: "plug",
-    wide: true,
-    body,
-    footer: foot,
-  });
-  let type = "fabric";
-  let game = defaultGame;
-  let versions = [];
-  let recommended = "";
-  let loading = false;
-  let error = "";
-  let seq = 0;
-
-  body.innerHTML = `
-    <div class="loader-types">${["fabric", "forge", "neoforge", "quilt"].map((id) => `<button type="button" class="loader-type ${id === type ? "active" : ""}" data-loader-type="${id}"><span class="lt-logo ${id}">${id.slice(0, 1).toUpperCase()}</span><strong>${id === "neoforge" ? "NeoForge" : id[0].toUpperCase() + id.slice(1)}</strong><small>${loaderDesc(id)}</small></button>`).join("")}</div>
-    <div class="form-grid-2" style="margin-top:14px">
-      <div class="field"><label>Minecraft 版本</label><input class="input" id="loaderGame" list="loaderGameList" value="${esc(game)}" placeholder="例如 1.21.4" spellcheck="false"><datalist id="loaderGameList">${dataList.map((id) => `<option value="${esc(id)}"></option>`).join("")}</datalist></div>
-      <div class="field"><label>加载器版本</label><select class="select" id="loaderVersion"><option>正在获取…</option></select></div>
-    </div>
-    <div class="loader-note" id="loaderNote"><span class="spinner"></span>正在读取加载器版本列表…</div>
-    <div class="switch-row" style="margin-top:10px">
-      <div class="switch-text"><strong>自动准备所需 Java</strong><span>检测到本机缺少对应 Java 时从 Adoptium 下载匹配平台的 JDK</span></div>
-      <label class="switch"><input type="checkbox" id="loaderAutoJava" checked><span class="track"></span></label>
-    </div>
-    <p class="hint" style="margin-top:10px">Fabric / Quilt 直接合并官方 profile；Forge / NeoForge 会下载官方 installer 并执行 --installClient，耗时较长。安装完成后会出现在“版本管理”中。</p>`;
-  foot.innerHTML = `<span class="spacer"></span><button class="btn btn-light" data-lcancel>取消</button><button class="btn btn-primary" data-linstall>${icon("download")}安装加载器</button>`;
-  const gameEl = body.querySelector("#loaderGame");
-  const versionEl = body.querySelector("#loaderVersion");
-  const noteEl = body.querySelector("#loaderNote");
-
-  function paintTypes() {
-    body.querySelectorAll("[data-loader-type]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.loaderType === type);
-      button.addEventListener("click", () => { type = button.dataset.loaderType; paintTypes(); fetchVersions(); });
-    });
-  }
-
-  async function fetchVersions() {
-    const current = ++seq;
-    game = gameEl.value.trim();
-    if (!/^[A-Za-z0-9._+-]{1,64}$/.test(game)) {
-      versionEl.innerHTML = `<option value="">请输入有效版本</option>`;
-      noteEl.innerHTML = `${icon("warning")}请输入 Minecraft 版本号，例如 1.21.4。`;
-      return;
-    }
-    loading = true;
-    error = "";
-    versionEl.innerHTML = `<option>读取中…</option>`;
-    noteEl.innerHTML = `<span class="spinner"></span>正在读取 ${type} 的版本列表…`;
-    try {
-      const data = await api(`/api/loader/versions?type=${encodeURIComponent(type)}&game=${encodeURIComponent(game)}`);
-      if (current !== seq) return;
-      versions = data.versions || [];
-      recommended = data.recommended || "";
-      if (!versions.length) {
-        versionEl.innerHTML = `<option value="">没有可用版本</option>`;
-        noteEl.innerHTML = `${icon("warning")}${esc(data.note || "该游戏版本没有对应的加载器版本。")}`;
-        return;
-      }
-      versionEl.innerHTML = versions.map((item) => `<option value="${esc(item.version)}" ${item.version === recommended ? "selected" : ""}>${esc(item.version)}${item.version === recommended ? " · 推荐" : item.recommended ? " · 推荐" : ""}${item.stable === false ? " · Beta" : ""}</option>`).join("");
-      noteEl.innerHTML = `<div class="loader-pick"><span>${icon("check")}已找到 ${versions.length} 个版本</span><span>推荐 <strong>${esc(recommended || versions[0].version)}</strong></span></div>`;
-    } catch (err) {
-      if (current !== seq) return;
-      error = err.message;
-      versionEl.innerHTML = `<option value="">获取失败</option>`;
-      noteEl.innerHTML = `${icon("warning")}${esc(err.message)} <button class="btn btn-light btn-sm" data-lretry>重试</button>`;
-      noteEl.querySelector("[data-lretry]")?.addEventListener("click", fetchVersions);
-    } finally {
-      if (current === seq) loading = false;
-    }
-  }
-
-  gameEl.addEventListener("change", fetchVersions);
-  gameEl.addEventListener("blur", fetchVersions);
-  foot.querySelector("[data-lcancel]").addEventListener("click", () => handle.close());
-  foot.querySelector("[data-linstall]").addEventListener("click", async () => {
-    game = gameEl.value.trim();
-    const loaderVersion = versionEl.value;
-    if (!game || !loaderVersion) { toast("请选择游戏版本与加载器版本", "error"); return; }
-    const button = foot.querySelector("[data-linstall]");
-    button.disabled = true;
-    try {
-      const data = await api("/api/loader/install", {
-        method: "POST",
-        body: { type, game, loader: loaderVersion, auto_java: body.querySelector("#loaderAutoJava").checked, source: state.settings?.download_source || "official" },
-      });
-      handle.close();
-      openTaskModal(data.task_id, { kind: "loader", title: `安装 ${type} ${loaderVersion}`, version: game });
-    } catch (error) {
-      toast(error.message, "error", 6000);
-      button.disabled = false;
-    }
-  });
-
-  paintTypes();
-  fetchVersions();
-}
-
-function loaderDesc(id) {
-  return {
-    fabric: "轻量、更新快",
-    forge: "老牌模组平台",
-    neoforge: "Forge 现代分支",
-    quilt: "兼容 Fabric 生态",
-  }[id] || "";
-}
-
 const actions = {
   navigate,
   launch,
@@ -1160,8 +1146,8 @@ const actions = {
   deleteVersion,
   openFolder,
   openPath,
+  chooseGameDirectory,
   openVersionManage,
-  openLoaderInstall,
   openAccountDialog,
   openTaskModal,
   openLaunchModal,

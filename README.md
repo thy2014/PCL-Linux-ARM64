@@ -7,7 +7,7 @@
 - **Windows 10/11 x64**：单文件 `PCL-Launcher.exe`，双击即用，不需要 Python。
 - **Linux ARM64**：`.deb` 安装包 + 通用 `tar.gz` 安装包，安装后命令为 `pcl-launcher`。
 
-不需要 Electron，不需要第三方 Python 依赖。版本下载、加载器安装、Modrinth 资源、账户、服务器测速、启动与崩溃诊断全部内置。
+不需要 Electron。窗口壳使用 pywebview：Windows 使用系统 WebView2，Linux 使用系统 GTK3 + WebKit2GTK。版本下载、加载器安装、Modrinth 资源、账户、服务器测速、启动与崩溃诊断全部内置。设置页可以直接选择游戏/启动目录。
 
 > 本项目是非官方社区实现，与 Mojang Studios、Microsoft、Plain Craft Launcher 官方没有隶属关系。请购买正版 Minecraft。
 
@@ -17,18 +17,18 @@
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows x64 | [`dist/PCL-Launcher.exe`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher.exe) | 单文件，约 10 MB，双击运行 |
-| Linux ARM64 · Debian/Ubuntu | [`dist/PCL-Launcher_1.0.0_arm64.deb`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher_1.0.0_arm64.deb) | 系统安装包，创建命令与桌面入口 |
+| Windows x64 | [`dist/PCL-Launcher.exe`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher.exe) | 单文件桌面窗口，双击运行，不需要 Python |
+| Linux ARM64 · Debian/Ubuntu | [`dist/PCL-Launcher_1.0.0_arm64.deb`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher_1.0.0_arm64.deb) | 系统安装包，创建窗口应用、命令与桌面入口 |
 | Linux ARM64 · 通用 | [`dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz) | 不依赖 dpkg 的发行版 |
 | Linux ARM64 · 单 Python 文件 | [`pcl-single.py`](https://raw.githubusercontent.com/thy2014/PCL-Linux-ARM64/main/pcl-single.py) | 只需要 Python 3.10+，适合调试 |
 
-### Windows 单文件 exe
+### Windows 单文件窗口 exe
 
 1. 下载 `PCL-Launcher.exe`。
-2. 双击运行；首次启动会自动打开 `http://127.0.0.1:3919/`。
+2. 双击运行，会打开一个独立的桌面窗口，不再依赖浏览器标签页。
 3. 如果 SmartScreen 提示“未知发布者”，选择“更多信息 → 仍要运行”。这是未签名程序的正常提示。
 
-不需要安装 Python，不会在系统里留下服务。应用数据默认在：
+不需要安装 Python。应用数据默认在：
 
 ```text
 %APPDATA%\PCL
@@ -39,6 +39,8 @@
 ```text
 %USERPROFILE%\.minecraft
 ```
+
+在“设置 → 游戏与账户 → 游戏目录”右侧点“选择”，即可调用 Windows 原生文件夹选择框；选择后点“保存设置”生效。
 
 ### Linux ARM64 · Debian / Ubuntu
 
@@ -60,7 +62,7 @@ sudo dpkg -i PCL-Launcher_1.0.0_arm64.deb
 - `/usr/share/applications/pcl-launcher.desktop`
 - `/usr/share/icons/hicolor/256x256/apps/pcl-launcher.png`
 
-从应用菜单搜索“PCL Launcher”也能打开。
+从应用菜单搜索“PCL Launcher”即可打开桌面窗口。`.deb` 会自动安装 `python3-gi`、`python3-gi-cairo`、GTK3 与 WebKit2GTK 依赖。
 
 ### Linux ARM64 · 通用 tar.gz
 
@@ -83,11 +85,14 @@ cd PCL-Launcher_1.0.0_linux_arm64
 ./uninstall.sh --purge    # 连同数据目录一起删除
 ```
 
-要求 Python **3.10+**，只使用标准库：
+要求 Python **3.10+**，以及系统的 GTK3 / WebKit2GTK：
 
 ```bash
-sudo apt install python3
+# Debian / Ubuntu
+sudo apt install python3 python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.0
 ```
+
+窗口版不依赖 pip 安装的第三方库；`pcl-single.py` 已内嵌 pywebview 窗口壳。若系统缺少 GTK/WebKit，可用 `python3 pcl-single.py --browser` 回退到浏览器模式，但原生目录选择器不可用。
 
 ### Linux ARM64 · 只运行单文件
 
@@ -100,6 +105,16 @@ python3 pcl-single.py
 
 ---
 
+## 桌面窗口与启动目录
+
+- 默认启动的是独立桌面窗口，不是浏览器标签页；Windows 使用 WebView2，Linux 使用 GTK3 + WebKit2GTK。
+- “设置 → 游戏与账户 → 游戏目录”右侧的“选择”按钮会调用系统原生文件夹选择框。
+- 选中的目录会在点击“保存设置”后写入 `config.json`，之后下载版本、安装加载器、扫描存档和启动游戏都以该目录为根目录。
+- 应用数据目录与游戏目录分离：数据目录放配置、日志、Java 运行时；游戏目录放 `versions / libraries / assets / saves / mods`。
+- 需要浏览器调试或系统缺少 WebKit 时，使用 `--browser`；完全无界面时使用 `--no-window --no-browser`。
+
+---
+
 ## 两个版本完全一样
 
 Windows exe 和 Linux ARM64 安装包共用同一份 `pcl_core/` 与 `web/`：
@@ -108,21 +123,25 @@ Windows exe 和 Linux ARM64 安装包共用同一份 `pcl_core/` 与 `web/`：
 | --- | --- | --- |
 | 后端 | 同一份 `pcl_core/` | 同一份 `pcl_core/` |
 | 界面 | 同一份 `web/` 中的 HTML/CSS/JS | 同一份 `web/` |
+| 窗口壳 | 同一套 pywebview，使用系统 WebView2 | 同一套 pywebview，使用系统 GTK3 + WebKit2GTK |
 | API | 同一套 JSON API 与 CSRF token | 同一套 JSON API 与 CSRF token |
+| 目录选择 | Windows 原生文件夹选择框 | GTK 原生文件夹选择框 |
 | 功能 | 版本、加载器、Modrinth、账户、服务器、诊断 | 相同 |
 | 平台差异 | Java 路径、`%APPDATA%` 数据目录、Windows 原生库 | Java 路径、`~/.pcl-arm64` 数据目录、ARM64 原生库替换 |
 
-启动器只做平台适配，不维护两套前端。Windows 端当前实测：
+启动器只做平台适配，不维护两套前端，也不维护两套窗口 UI。Windows 端当前实测：
 
-- exe 启动成功，`/api/bootstrap` 返回 `PCL Launcher 1.0.0`。
-- 首页、下载、设置、关于页正常渲染，控制台无报错。
+- exe 启动后打开独立桌面窗口，`/api/bootstrap` 返回 `PCL Launcher 1.0.0`。
+- 首页、下载、设置、关于页正常渲染，窗口内没有浏览器地址栏。
+- 设置页“选择”按钮可以拉起 Windows 原生文件夹选择框，选择路径并保存。
 - `/`、`/css/app.css`、`/js/app.js`、`/assets/logo.svg` 全部 HTTP 200。
 - 自动检测到系统 Java 21（Microsoft / Zulu）。
 
 Linux ARM64 端当前实测：
 
-- `.deb` 的 `Architecture: arm64`、`Depends: python3 (>= 3.10)` 正确。
-- 解包后 `PCL Launcher 1.0.0` 可运行。
+- `.deb` 的 `Architecture: arm64`、`Depends: python3 (>= 3.10), python3-gi, ... WebKit2GTK` 正确。
+- 解包后 `PCL Launcher 1.0.0` 可运行；窗口在 GTK 桌面下打开。
+- 设置页“选择”按钮可以拉起 GTK 原生目录选择框，选择路径并保存。
 - 通用 tar 安装脚本可创建 `pcl-launcher` 命令和桌面入口。
 - 启动服务后首页与 API 正常返回。
 
@@ -181,6 +200,7 @@ Linux 安装包（同一套界面，仅系统标签不同）：
 - **NeoForge**：下载官方 installer，执行 `--installClient`。
 - 加载器版本列表、推荐版本、Beta 标记。
 - 加载器安装复用原版安装器，自动准备 Java、资源与依赖。
+- 安装原版时可在同一个弹窗、同一个任务里顺带选择 Fabric / Forge / NeoForge / Quilt，避免装完原版再单独装加载器。
 - 安装完成后自动识别 `loader` / `game_version`，在版本卡片显示。
 
 ### 资源下载（Modrinth）
@@ -254,44 +274,47 @@ Linux 安装包（同一套界面，仅系统标签不同）：
 ### 环境要求
 
 - Windows 10/11 x64，或 Linux ARM64（aarch64）。
-- Python **3.10+**，仅使用标准库。
-- 一个现代浏览器（Chromium / Firefox / Edge）。
-- 启动游戏需要桌面环境、可用的 OpenGL 驱动与音频设备；纯 SSH 无显示环境时只能下载与管理。
+- Python **3.10+**。
+- pywebview 窗口壳：Windows 使用系统 WebView2；Linux 使用系统 GTK3 + WebKit2GTK（`python3-gi`）。
+- 启动游戏需要桌面环境、可用的 OpenGL 驱动与音频设备；纯 SSH 无显示环境会回退到浏览器模式。
 
 ### 运行
 
 ```bash
 git clone https://github.com/thy2014/PCL-Linux-ARM64.git
 cd PCL-Linux-ARM64
+python3 -m pip install -r requirements.txt
 python3 pcl.py
 ```
 
 Windows：
 
 ```powershell
+py -m pip install -r requirements.txt
 py pcl.py
 ```
 
-默认打开 `http://127.0.0.1:3919/`。端口被占用会自动顺延，终端会打印实际地址。
+默认打开一个独立的 `PCL Launcher` 桌面窗口，窗口内没有浏览器地址栏。端口被占用会自动顺延，终端会打印实际地址。需要浏览器调试时：
+
+```bash
+python3 pcl.py --browser
+```
 
 ### 构建
 
 ```bash
-# 单文件 Python（Linux ARM64 安装包内部使用）
+# 单文件 Python（Linux ARM64 安装包内部使用；需要 pywebview）
+python3 -m pip install pywebview
 python3 tools/build_single.py
 
 # Linux ARM64 .deb + tar.gz
 bash packaging/linux/build_deb.sh
 
-# Windows 单文件 exe（在 Windows 上执行）
+# Windows 单文件窗口 exe（在 Windows 上执行）
 powershell -File packaging/windows/build.ps1
 ```
 
-Windows 构建需要 PyInstaller：
-
-```powershell
-python -m pip install pyinstaller
-```
+Windows 构建脚本会自动安装 PyInstaller 与 pywebview：
 
 输出：
 
@@ -309,14 +332,17 @@ dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz
 --data-dir    应用数据目录；Windows 默认 %APPDATA%\PCL，Linux 默认 ~/.pcl-arm64
 --game-dir    游戏目录，默认 ~/.minecraft
 --arch        arm64 / x86_64 / arm32（调试用）
---no-browser  不自动打开浏览器
+--no-window   不打开桌面窗口（服务端模式）
+--browser     强制使用浏览器打开（调试用）
+--no-browser  回退浏览器时也不自动打开
 --version     显示版本
 ```
 
 示例：
 
 ```bash
-python3 pcl.py --game-dir ~/Games/Minecraft --port 4000 --no-browser
+python3 pcl.py --game-dir ~/Games/Minecraft --port 4000
+python3 pcl.py --no-window --no-browser --port 4000
 ```
 
 ---
@@ -427,7 +453,7 @@ tests/
 | GET | `/api/bootstrap` | 启动数据、设置、Java、版本、账户、服务器、任务、token |
 | GET | `/api/versions` | Mojang 版本清单 |
 | GET | `/api/installed` | 已安装版本 |
-| POST | `/api/install` | 开始原版安装任务 |
+| POST | `/api/install` | 开始原版安装任务；可选 `loader_type` + `loader_version` 在同一任务中原版后继续装加载器 |
 | GET | `/api/java` | Java 列表 |
 | POST | `/api/java/download` | 下载 Adoptium JDK |
 | POST | `/api/launch` | 构建启动命令并启动 |

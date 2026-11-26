@@ -5,6 +5,8 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from pcl_core.accounts import AccountStore
 from pcl_core.config import Config, Paths, detect_arch
@@ -16,6 +18,8 @@ class UtilTests(unittest.TestCase):
     def test_version_id_validation(self) -> None:
         self.assertTrue(valid_version_id("1.21.4"))
         self.assertTrue(valid_version_id("fabric-loader-0.16.10-1.21.4"))
+        self.assertTrue(valid_version_id("地下酒吧"))
+        self.assertTrue(valid_version_id("现代战争：蒸汽齿轮"))
         self.assertFalse(valid_version_id("../etc/passwd"))
         self.assertFalse(valid_version_id(""))
         self.assertFalse(valid_version_id("-bad-start"))
@@ -144,6 +148,57 @@ class AccountTests(unittest.TestCase):
             self.assertEqual(names, ["Steve"])
             with self.assertRaises(Exception):
                 store.remove(default["id"])
+
+
+class LoaderTests(unittest.TestCase):
+    def test_neo_prefix_supports_modern_versions(self) -> None:
+        from pcl_core.loaders import _neo_prefix
+
+        self.assertEqual(_neo_prefix("1.21.1"), "21.1.")
+        self.assertEqual(_neo_prefix("1.20.2"), "20.2.")
+        self.assertEqual(_neo_prefix("26.3"), "26.3.")
+        self.assertIsNone(_neo_prefix("snapshot"))
+
+    def test_installer_urls_can_prefer_mirror(self) -> None:
+        from pcl_core.loaders import _installer_info
+
+        urls, expected = _installer_info("forge", "1.21.1", "52.1.21", "bmclapi")
+        self.assertIn("bmclapi2.bangbang93.com", urls[0])
+        self.assertEqual(expected, "1.21.1-forge-52.1.21")
+        urls, expected = _installer_info("neoforge", "1.21.1", "21.1.267", "official")
+        self.assertIn("maven.neoforged.net", urls[0])
+        self.assertEqual(expected, "neoforge-21.1.267")
+
+
+class CombinedInstallTests(unittest.TestCase):
+    def test_vanilla_and_loader_share_one_task(self) -> None:
+        from pcl_core import server
+
+        class FakeTask:
+            def set_phase(self, *_args):
+                pass
+
+            def log(self, *_args):
+                pass
+
+            def mark_cancelled(self):
+                pass
+
+            def fail(self, message):
+                raise AssertionError(message)
+
+        state = SimpleNamespace(
+            config=object(),
+            paths=object(),
+            service=object(),
+            invalidate_all=lambda: None,
+        )
+        with patch.object(server.installer, "install_version") as install, patch.object(
+            server.loaders, "install_loader"
+        ) as load:
+            server._run_install(state, FakeTask(), "1.20.1", "official", True, None, "fabric", "0.16.9")
+        self.assertFalse(install.call_args.kwargs["finalize"])
+        self.assertEqual(load.call_args.args[4:7], ("fabric", "1.20.1", "0.16.9"))
 
 
 if __name__ == "__main__":

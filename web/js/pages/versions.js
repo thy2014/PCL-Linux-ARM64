@@ -44,7 +44,6 @@ export function versionsPage(ctx) {
       </div>
       <div class="toolbar-right">
         <button class="btn btn-light btn-sm" data-open-game>${icon("folder")}游戏目录</button>
-        <button class="btn btn-soft btn-sm" data-loader-install>${icon("plug")}安装加载器</button>
         <button class="btn btn-soft btn-sm" data-goto-download>${icon("download")}下载新版本</button>
         <button class="icon-btn" data-refresh title="刷新">${icon("refresh")}</button>
       </div>
@@ -63,9 +62,6 @@ export function versionsPage(ctx) {
   });
   root.querySelectorAll("[data-manage]").forEach((button) => {
     button.addEventListener("click", () => actions.openVersionManage(button.dataset.manage));
-  });
-  root.querySelectorAll("[data-loader-install]").forEach((button) => {
-    button.addEventListener("click", () => actions.openLoaderInstall(""));
   });
   root.querySelectorAll("[data-folder]").forEach((button) => {
     button.addEventListener("click", () => actions.openFolder("version", button.dataset.folder));

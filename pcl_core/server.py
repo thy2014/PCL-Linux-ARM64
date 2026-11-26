@@ -245,7 +245,16 @@ def validate_settings(state: AppState, body: dict[str, Any]) -> dict[str, Any]:
     return patch
 
 
-def _run_install(state: AppState, task: Task, version: str, source: str, auto_java: bool, java_major: int | None) -> None:
+def _run_install(
+    state: AppState,
+    task: Task,
+    version: str,
+    source: str,
+    auto_java: bool,
+    java_major: int | None,
+    loader: str = "",
+    loader_version: str = "",
+) -> None:
     try:
         installer.install_version(
             state.config,
@@ -256,7 +265,22 @@ def _run_install(state: AppState, task: Task, version: str, source: str, auto_ja
             source=source,
             auto_java=auto_java,
             java_major=java_major,
+            finalize=not bool(loader),
         )
+        if loader:
+            task.set_phase("安装加载器")
+            task.log(f"原版安装完成，继续安装 {loader} {loader_version}")
+            loaders.install_loader(
+                state.config,
+                state.paths,
+                state.service,
+                task,
+                loader,
+                version,
+                loader_version,
+                source=source,
+                auto_java=auto_java,
+            )
     except (TaskCancelled, DownloadCancelled):
         task.mark_cancelled()
     except Exception as error:  # noqa: BLE001 - 任务边界
@@ -521,12 +545,13 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/loader/versions":
             loader = (query.get("type") or [""])[0].lower()
             game = (query.get("game") or [""])[0]
+            source = (query.get("source") or ["official"])[0].lower()
             if loader not in ("fabric", "quilt", "forge", "neoforge"):
                 raise SettingsError("不支持的加载器")
             if not valid_version_id(game):
                 raise SettingsError("游戏版本不合法")
             try:
-                data = loaders.loader_versions(loader, game)
+                data = loaders.loader_versions(loader, game, source)
             except FetchError as error:
                 self._error(f"获取加载器版本失败：{error}", 502)
                 return
@@ -782,16 +807,25 @@ class Handler(BaseHTTPRequestHandler):
             if source not in ("official", "bmclapi"):
                 raise SettingsError("未知下载源")
             auto_java = _coerce_bool(body.get("auto_java", True))
+            loader = str(body.get("loader_type") or "").lower()
+            loader_version = str(body.get("loader_version") or "").strip()
+            if loader:
+                if loader not in ("fabric", "quilt", "forge", "neoforge"):
+                    raise SettingsError("不支持的加载器")
+                if not re.match(r"^[A-Za-z0-9._+-]{1,64}$", loader_version):
+                    raise SettingsError("加载器版本不合法")
             java_major = body.get("java_major")
             if java_major in (None, "", 0):
                 java_major = None
             else:
                 java_major = _coerce_int(java_major, "Java 版本", 8, 25)
                 auto_java = False
-            task = state.tasks.create("install", f"安装 {version}")
+            loader_title = {"fabric": "Fabric", "quilt": "Quilt", "forge": "Forge", "neoforge": "NeoForge"}.get(loader, loader)
+            title = f"安装 {version}" + (f" + {loader_title} {loader_version}" if loader else "")
+            task = state.tasks.create("install", title)
             thread = threading.Thread(
                 target=_run_install,
-                args=(state, task, version, source, auto_java, java_major),
+                args=(state, task, version, source, auto_java, java_major, loader, loader_version),
                 name=f"install-{task.id}",
                 daemon=True,
             )

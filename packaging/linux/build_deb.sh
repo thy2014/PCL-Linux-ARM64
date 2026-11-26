@@ -33,13 +33,14 @@ Version: $VERSION
 Section: games
 Priority: optional
 Architecture: $ARCH
-Depends: python3 (>= 3.10)
+Depends: python3 (>= 3.10), python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-webkit2-4.0 | gir1.2-webkit2-4.1
 Installed-Size: $(du -sk "$STAGE/usr" | cut -f1)
 Maintainer: thy2014 <thy2014@users.noreply.github.com>
 Description: PCL Launcher - Minecraft launcher for Linux ARM64
- A PCL-style Minecraft launcher with version, loader, Modrinth,
- account, server and diagnostic features. Uses the Python standard
- library only; the same UI is shipped as the Windows single-file build.
+ A PCL-style Minecraft launcher with a native desktop window,
+ version, loader, Modrinth, account, server and diagnostic features.
+ The window uses the system GTK3 + WebKit2GTK runtime; the same web
+ UI is shipped in the Windows single-file build.
 EOF
 
 cat > "$STAGE/DEBIAN/postinst" <<'EOF'

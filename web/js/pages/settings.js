@@ -28,9 +28,10 @@ export function settingsPage(ctx) {
             <label for="setGameDir">游戏目录</label>
             <div class="input-group">
               <input class="input mono" id="setGameDir" value="${esc(settings.game_dir || "")}" spellcheck="false">
-              <button class="btn btn-light" data-open-game title="在文件管理器中打开">${icon("folder")}</button>
+              <button class="btn btn-light" data-pick-game title="选择游戏目录">${icon("folder")}选择</button>
+              <button class="icon-btn" data-open-game title="在文件管理器中打开">${icon("external")}</button>
             </div>
-            <span class="hint">默认 ~/.minecraft，支持 ~ 与绝对路径。</span>
+            <span class="hint">启动游戏时使用这个目录；版本、存档、资源与模组都会写在这里。可直接输入，或点“选择”调用系统目录选择器。</span>
           </div>
           <div class="field">
             <label for="setUsername">离线玩家名</label>
@@ -167,6 +168,14 @@ export function settingsPage(ctx) {
   };
   range.addEventListener("input", updateMemory);
 
+  root.querySelectorAll('input[name="theme"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      document.documentElement.dataset.theme = input.value;
+      const hint = root.querySelector("#saveHint");
+      if (hint) hint.textContent = "主题已预览，保存后生效";
+    });
+  });
+
   root.querySelectorAll("[data-java-major]").forEach((button) => {
     button.addEventListener("click", () => actions.downloadJava(Number(button.dataset.javaMajor)));
   });
@@ -180,6 +189,9 @@ export function settingsPage(ctx) {
   root.querySelectorAll("[data-accounts]").forEach((button) => {
     button.addEventListener("click", () => actions.openAccountDialog());
   });
+  root.querySelectorAll("[data-pick-game]").forEach((button) => {
+    button.addEventListener("click", () => actions.chooseGameDirectory());
+  });
   root.querySelectorAll("[data-open-game]").forEach((button) => {
     button.addEventListener("click", () => actions.openFolder("game"));
   });
@@ -190,7 +202,10 @@ export function settingsPage(ctx) {
     button.addEventListener("click", () => actions.openFolder("logs"));
   });
 
-  root.querySelector("#reloadSettings").addEventListener("click", () => actions.render());
+  root.querySelector("#reloadSettings").addEventListener("click", () => {
+    document.documentElement.dataset.theme = state.settings?.theme || "blue";
+    actions.render();
+  });
   root.querySelector("#saveSettings").addEventListener("click", async () => {
     const button = root.querySelector("#saveSettings");
     const hint = root.querySelector("#saveHint");

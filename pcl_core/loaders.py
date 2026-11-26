@@ -25,6 +25,13 @@ QUILT_META = "https://meta.quiltmc.org/v3"
 FORGE_MAVEN = "https://maven.minecraftforge.net/net/minecraftforge/forge"
 FORGE_PROMOTIONS = "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json"
 NEOFORGE_MAVEN = "https://maven.neoforged.net/releases/net/neoforged/neoforge"
+BMCLAPI = "https://bmclapi2.bangbang93.com"
+FABRIC_MIRROR = f"{BMCLAPI}/fabric-meta/v2"
+FORGE_MAVEN_MIRROR = f"{BMCLAPI}/maven/net/minecraftforge/forge"
+FORGE_PROMOTIONS_MIRROR = f"{BMCLAPI}/forge/promotions_slim.json"
+NEOFORGE_MAVEN_MIRROR = f"{BMCLAPI}/maven/net/neoforged/neoforge"
+LOADER_CACHE_TTL = 600
+_loader_cache: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
 
 LOADER_TYPES = [
     {"id": "fabric", "name": "Fabric", "description": "轻量、更新快，适合大多数优化与辅助模组", "available": True},
@@ -40,24 +47,30 @@ def _meta_library(name: str, url: str, version: str) -> dict[str, Any]:
     return {"name": f"{name}:{version}", "url": url}
 
 
-def _fabric_profile(game: str, loader: str) -> dict[str, Any]:
-    url = f"{FABRIC_META}/versions/loader/{game}/{loader}/profile/json"
-    data = get_json(url, timeout=25, retries=2)
-    if not isinstance(data, dict) or not data.get("id"):
-        raise FetchError("Fabric 配置格式不正确")
-    return data
+def _fabric_profile(game: str, loader: str, source: str = "official") -> dict[str, Any]:
+    bases = [FABRIC_META, FABRIC_MIRROR] if source != "bmclapi" else [FABRIC_MIRROR, FABRIC_META]
+    last_error: Exception | None = None
+    for base in bases:
+        try:
+            data = get_json(f"{base}/versions/loader/{game}/{loader}/profile/json", timeout=6, retries=1)
+            if not isinstance(data, dict) or not data.get("id"):
+                raise FetchError("Fabric 配置格式不正确")
+            return data
+        except FetchError as error:
+            last_error = error
+    raise FetchError(f"Fabric 配置获取失败：{last_error}")
 
 
 def _quilt_profile(game: str, loader: str) -> dict[str, Any]:
     url = f"{QUILT_META}/versions/loader/{game}/{loader}/profile/json"
-    data = get_json(url, timeout=25, retries=2)
+    data = get_json(url, timeout=6, retries=1)
     if not isinstance(data, dict) or not data.get("id"):
         raise FetchError("Quilt 配置格式不正确")
     return data
 
 
-def _xml_versions(url: str) -> list[str]:
-    text = get_text(url, timeout=30, retries=2)
+def _xml_versions(url: str, timeout: float = 5, retries: int = 1) -> list[str]:
+    text = get_text(url, timeout=timeout, retries=retries)
     try:
         root = ET.fromstring(text)
     except ET.ParseError as error:
@@ -71,18 +84,53 @@ def _xml_versions(url: str) -> list[str]:
 
 def _neo_prefix(game: str) -> str | None:
     parts = game.split(".")
-    if len(parts) < 2 or parts[0] != "1":
+    if len(parts) < 2 or not parts[0].isdigit():
         return None
-    rest = ".".join(parts[1:])
+    rest = ".".join(parts[1:]) if parts[0] == "1" else game
     if rest.count(".") == 0:
         rest += ".0"
     return rest + "."
 
 
-def loader_versions(loader: str, game: str) -> dict[str, Any]:
+def _ordered(urls: list[str], source: str) -> list[str]:
+    return list(reversed(urls)) if source == "bmclapi" else list(urls)
+
+
+def _first_json(urls: list[str], timeout: float = 5) -> Any:
+    last_error: Exception | None = None
+    for url in urls:
+        try:
+            return get_json(url, timeout=timeout, retries=1)
+        except FetchError as error:
+            last_error = error
+    raise FetchError(f"加载器元数据获取失败：{last_error}")
+
+
+def _first_xml(urls: list[str], timeout: float = 5) -> list[str]:
+    last_error: Exception | None = None
+    for url in urls:
+        try:
+            return _xml_versions(url, timeout=timeout, retries=1)
+        except FetchError as error:
+            last_error = error
+    raise FetchError(f"加载器版本列表获取失败：{last_error}")
+
+
+def loader_versions(loader: str, game: str, source: str = "official") -> dict[str, Any]:
     loader = loader.lower()
+    cache_key = (loader, game, source)
+    cached = _loader_cache.get(cache_key)
+    if cached and time.time() - cached[0] < LOADER_CACHE_TTL:
+        return dict(cached[1])
+    result = _loader_versions_uncached(loader, game, source)
+    if result.get("versions"):
+        _loader_cache[cache_key] = (time.time(), dict(result))
+    return result
+
+
+def _loader_versions_uncached(loader: str, game: str, source: str) -> dict[str, Any]:
     if loader == "fabric":
-        data = get_json(f"{FABRIC_META}/versions/loader/{game}", timeout=25, retries=2)
+        data = _first_json([f"{FABRIC_MIRROR}/versions/loader/{game}", f"{FABRIC_META}/versions/loader/{game}"])
         if not isinstance(data, list):
             raise FetchError("Fabric 加载器列表格式不正确")
         items = [
@@ -94,9 +142,14 @@ def loader_versions(loader: str, game: str) -> dict[str, Any]:
             for item in data
             if isinstance(item, dict) and item.get("loader", {}).get("version")
         ]
-        return {"loader": loader, "game": game, "versions": items[:40], "recommended": next((i["version"] for i in items if i["stable"]), items[0]["version"] if items else "")}
+        return {
+            "loader": loader,
+            "game": game,
+            "versions": items[:40],
+            "recommended": next((i["version"] for i in items if i["stable"]), items[0]["version"] if items else ""),
+        }
     if loader == "quilt":
-        data = get_json(f"{QUILT_META}/versions/loader/{game}", timeout=25, retries=2)
+        data = _first_json([f"{QUILT_META}/versions/loader/{game}"])
         if not isinstance(data, list):
             raise FetchError("Quilt 加载器列表格式不正确")
         items = []
@@ -104,56 +157,74 @@ def loader_versions(loader: str, game: str) -> dict[str, Any]:
             version = item.get("loader", {}).get("version") if isinstance(item, dict) else None
             if version:
                 items.append({"version": str(version), "stable": "beta" not in str(version), "recommended": False})
-        return {"loader": loader, "game": game, "versions": items[:40], "recommended": items[0]["version"] if items else ""}
+        return {
+            "loader": loader,
+            "game": game,
+            "versions": items[:40],
+            "recommended": items[0]["version"] if items else "",
+        }
     if loader == "forge":
-        versions = []
-        promotions: dict[str, Any] = {}
+        recommended = None
+        latest = None
+        versions: list[str] = []
         try:
-            promo = get_json(FORGE_PROMOTIONS, timeout=25, retries=2)
-            promotions = promo.get("promos") if isinstance(promo, dict) else {}
+            data = _first_json([f"{BMCLAPI}/forge/minecraft/{game}"], timeout=5)
+            if isinstance(data, list):
+                versions = [str(item["version"]) for item in data if isinstance(item, dict) and item.get("version")]
         except FetchError:
-            promotions = {}
-        try:
-            all_versions = _xml_versions(f"{FORGE_MAVEN}/maven-metadata.xml")
-            prefix = f"{game}-"
-            versions = [v[len(prefix):] for v in all_versions if v.startswith(prefix)]
-        except FetchError:
-            recommended = promotions.get(f"{game}-recommended") if isinstance(promotions, dict) else None
-            latest = promotions.get(f"{game}-latest") if isinstance(promotions, dict) else None
-            versions = [v for v in (recommended, latest) if v]
-        seen = set()
+            versions = []
+        if not versions:
+            try:
+                all_versions = _first_xml([f"{FORGE_MAVEN}/maven-metadata.xml"])
+                prefix = f"{game}-"
+                versions = [v[len(prefix):] for v in all_versions if v.startswith(prefix)]
+            except FetchError:
+                versions = []
+        seen: set[str] = set()
         items = []
-        recommended = promotions.get(f"{game}-recommended") if isinstance(promotions, dict) else None
-        latest = promotions.get(f"{game}-latest") if isinstance(promotions, dict) else None
         for version in versions:
             if version in seen:
                 continue
             seen.add(version)
             items.append({"version": version, "stable": True, "recommended": version == recommended})
         items.sort(key=lambda x: [int(p) if p.isdigit() else p for p in re.split(r"([0-9]+)", x["version"])], reverse=True)
-        return {"loader": loader, "game": game, "versions": items[:60], "recommended": recommended or latest or (items[0]["version"] if items else "")}
+        return {
+            "loader": loader,
+            "game": game,
+            "versions": items[:60],
+            "recommended": recommended or latest or (items[0]["version"] if items else ""),
+        }
     if loader == "neoforge":
         prefix = _neo_prefix(game)
         if not prefix:
             return {"loader": loader, "game": game, "versions": [], "recommended": "", "note": "NeoForge 仅支持 1.20.2 及更高版本"}
         try:
-            all_versions = _xml_versions(f"{NEOFORGE_MAVEN}/maven-metadata.xml")
+            all_versions = _first_xml([f"{NEOFORGE_MAVEN_MIRROR}/maven-metadata.xml", f"{NEOFORGE_MAVEN}/maven-metadata.xml"])
         except FetchError as error:
             return {"loader": loader, "game": game, "versions": [], "recommended": "", "note": f"无法获取 NeoForge 版本列表：{error}"}
         versions = [v for v in all_versions if v.startswith(prefix)]
         versions.sort(key=lambda v: [int(p) if p.isdigit() else p for p in re.split(r"([0-9]+)", v)], reverse=True)
         items = [{"version": v, "stable": "beta" not in v, "recommended": False} for v in versions[:60]]
-        return {"loader": loader, "game": game, "versions": items, "recommended": items[0]["version"] if items else ""}
+        return {
+            "loader": loader,
+            "game": game,
+            "versions": items,
+            "recommended": items[0]["version"] if items else "",
+        }
     raise FetchError("暂不支持该加载器")
 
 
-def _installer_info(loader: str, game: str, loader_version: str) -> tuple[str, str]:
+def _installer_info(loader: str, game: str, loader_version: str, source: str = "official") -> tuple[list[str], str]:
     if loader == "forge":
-        base = f"{FORGE_MAVEN}/{game}-{loader_version}"
-        return f"{base}/forge-{game}-{loader_version}-installer.jar", f"{game}-forge-{loader_version}"
+        name = f"forge-{game}-{loader_version}-installer.jar"
+        official = f"{FORGE_MAVEN}/{game}-{loader_version}/{name}"
+        mirror = f"{FORGE_MAVEN_MIRROR}/{game}-{loader_version}/{name}"
+        return _ordered([official, mirror], source), f"{game}-forge-{loader_version}"
     if loader == "neoforge":
-        base = f"{NEOFORGE_MAVEN}/{loader_version}"
-        return f"{base}/neoforge-{loader_version}-installer.jar", f"neoforge-{loader_version}"
+        name = f"neoforge-{loader_version}-installer.jar"
+        official = f"{NEOFORGE_MAVEN}/{loader_version}/{name}"
+        mirror = f"{NEOFORGE_MAVEN_MIRROR}/{loader_version}/{name}"
+        return _ordered([official, mirror], source), f"neoforge-{loader_version}"
     raise FetchError("该加载器不需要安装器")
 
 
@@ -256,7 +327,7 @@ def install_loader(
     required = required_java_major(parent_json)
     if loader in ("fabric", "quilt"):
         task.set_phase("获取加载器配置")
-        profile = _fabric_profile(game, loader_version) if loader == "fabric" else _quilt_profile(game, loader_version)
+        profile = _fabric_profile(game, loader_version, source) if loader == "fabric" else _quilt_profile(game, loader_version)
         merged = merge_version_json(parent_json, profile, profile["id"])
         install_version(
             config, paths, service, task, profile["id"],
@@ -266,7 +337,7 @@ def install_loader(
         )
         return
 
-    installer_url, expected = _installer_info(loader, game, loader_version)
+    installer_urls, expected = _installer_info(loader, game, loader_version, source)
     task.set_phase("准备 Java")
     if not java_runtime.has_suitable(config, paths, required):
         if not auto_java:
@@ -280,11 +351,21 @@ def install_loader(
     installer_dir.mkdir(parents=True, exist_ok=True)
     parent_dir = config.ensure_game_dir() / "versions" / game
     parent_existed = parent_dir.exists()
-    installer = installer_dir / installer_url.rsplit("/", 1)[-1]
+    installer = installer_dir / installer_urls[0].rsplit("/", 1)[-1]
     task.set_phase("下载安装器")
-    task.log(f"安装器：{installer_url}")
     if not installer.exists() or installer.stat().st_size == 0:
-        download_file(installer_url, installer, timeout=90, cancel=task.cancel_event, log=task.log)
+        last_error: Exception | None = None
+        for installer_url in installer_urls:
+            task.log(f"安装器：{installer_url}")
+            try:
+                download_file(installer_url, installer, timeout=90, cancel=task.cancel_event, log=task.log)
+                last_error = None
+                break
+            except FetchError as error:
+                last_error = error
+                task.log(f"安装器下载源失败，尝试下一个：{error}")
+        if last_error is not None:
+            raise FetchError(f"安装器下载失败：{last_error}")
     task.file_done(name=installer.name, skipped=False)
 
     task.set_phase(f"运行 {loader} 安装器")

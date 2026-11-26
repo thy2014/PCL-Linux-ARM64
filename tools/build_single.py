@@ -8,6 +8,7 @@ import os
 import sys
 import zipfile
 import zlib
+from importlib.util import find_spec
 from pathlib import Path
 from textwrap import wrap
 
@@ -16,7 +17,24 @@ sys.path.insert(0, str(ROOT))
 from pcl_core.config import APP_VERSION  # noqa: E402
 
 OUTPUT = ROOT / "pcl-single.py"
-PREFIX = "PCLSINGLE1:"
+
+
+def package_spec(name: str):
+    spec = find_spec(name)
+    if spec is None or not spec.origin:
+        raise SystemExit(f"缺少打包依赖：{name}。请先安装 pywebview。")
+    return spec
+
+
+def add_dependency(zf: zipfile.ZipFile, name: str) -> None:
+    spec = package_spec(name)
+    if spec.submodule_search_locations:
+        root = Path(next(iter(spec.submodule_search_locations)))
+        for child in sorted(root.rglob("*.py")):
+            zf.write(child, child.relative_to(root.parent).as_posix())
+    else:
+        path = Path(spec.origin)
+        zf.write(path, path.name)
 
 
 def build_zip() -> bytes:
@@ -33,6 +51,17 @@ def build_zip() -> bytes:
             if path.suffix in {".pyc"} or "__pycache__" in path.parts:
                 continue
             zf.write(path, path.relative_to(ROOT).as_posix())
+
+        # Linux 安装包需要自带窗口壳；Windows exe 由 PyInstaller 单独收集。
+        webview_spec = package_spec("webview")
+        webview_root = Path(next(iter(webview_spec.submodule_search_locations)))
+        for path in sorted(webview_root.rglob("*.py")):
+            zf.write(path, path.relative_to(webview_root.parent).as_posix())
+        for path in sorted((webview_root / "js").rglob("*")):
+            if path.is_file():
+                zf.write(path, path.relative_to(webview_root.parent).as_posix())
+        for name in ("bottle", "proxy_tools", "typing_extensions"):
+            add_dependency(zf, name)
     return buffer.getvalue()
 
 

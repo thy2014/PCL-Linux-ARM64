@@ -40,18 +40,6 @@ export function downloadPage(ctx) {
       </div>
     </div>
 
-    <div class="card loader-strip">
-      <div class="loader-badge">${icon("plug")}</div>
-      <div class="loader-copy">
-        <strong>模组加载器</strong>
-        <p>Fabric / Quilt 轻量快速，Forge / NeoForge 生态成熟；加载器需要依附一个已安装的原版或对应游戏版本。</p>
-      </div>
-      <div class="actions">
-        <button class="btn btn-soft btn-sm" data-loader-install>${icon("download")}安装加载器</button>
-        <button class="btn btn-light btn-sm" data-goto-versions>${icon("layers")}管理版本</button>
-      </div>
-    </div>
-
     <div class="card java-strip">
       <div class="java-badge">${icon("coffee")}</div>
       <div class="java-copy">
@@ -157,10 +145,6 @@ export function downloadPage(ctx) {
   root.querySelector("#refreshVersions").addEventListener("click", () => {
     actions.loadVersions(true, ui.source);
   });
-  root.querySelector("[data-loader-install]").addEventListener("click", () => {
-    actions.openLoaderInstall("");
-  });
-  root.querySelector("[data-goto-versions]").addEventListener("click", () => actions.navigate("versions"));
   root.querySelectorAll("[data-java-major]").forEach((button) => {
     button.addEventListener("click", () => actions.downloadJava(Number(button.dataset.javaMajor)));
   });
