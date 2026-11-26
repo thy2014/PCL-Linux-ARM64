@@ -17,26 +17,35 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install window shell
-        run: python -m pip install --disable-pip-version-check --quiet pywebview
-      - name: Rebuild single file and packages
-        run: bash packaging/linux/build_deb.sh
+      - name: Install GTK/WebKit build runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0
+          sudo apt-get install -y gir1.2-webkit2-4.1 || sudo apt-get install -y gir1.2-webkit2-4.0
+      - name: Install PyInstaller and pywebview in a venv
+        run: |
+          python3 -m venv --system-site-packages /tmp/pcl-build-venv
+          . /tmp/pcl-build-venv/bin/activate
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet pyinstaller pywebview
+      - name: Build bundled-Python executable and packages
+        run: |
+          . /tmp/pcl-build-venv/bin/activate
+          bash packaging/linux/build_pyinstaller.sh
       - name: Commit Linux artifacts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config http.postBuffer 524288000
           git add pcl-single.py dist/PCL-Launcher_1.0.0_arm64.deb dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz
           if git diff --cached --quiet; then
             echo "No Linux artifact changes"
           else
-            git commit -m "build: Linux ARM64 desktop-window packages"
+            git commit -m "build: Linux ARM64 bundled-Python packages"
             git push
           fi
