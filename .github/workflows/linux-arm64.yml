@@ -1,0 +1,42 @@
+name: Build Linux ARM64 packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pcl.py"
+      - "pcl_core/**"
+      - "web/**"
+      - "packaging/linux/**"
+      - "tools/build_single.py"
+      - ".github/workflows/linux-arm64.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install window shell
+        run: python -m pip install --disable-pip-version-check --quiet pywebview
+      - name: Rebuild single file and packages
+        run: bash packaging/linux/build_deb.sh
+      - name: Commit Linux artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pcl-single.py dist/PCL-Launcher_1.0.0_arm64.deb dist/PCL-Launcher_1.0.0_linux_arm64.tar.gz
+          if git diff --cached --quiet; then
+            echo "No Linux artifact changes"
+          else
+            git commit -m "build: Linux ARM64 desktop-window packages"
+            git push
+          fi
